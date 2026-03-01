@@ -15,8 +15,9 @@
 * **Issue-to-Code Mapping:** Uses semantic search and RAG to automatically pinpoint the exact files and functions needed to solve a specific GitHub Issue.  
 * **Architectural Intent (Institutional Memory):** Scans past Pull Requests to explain the "why" behind specific logic and architectural decisions.  
 * **Repository Visualization:** Generates a highly interactive, bird's-eye Force-Directed Graph to show how different modules and dependencies are connected.  
-* **The "Jargon Buster":** Acts as an AI mentor that simplifies dense technical documentation into "Student-Friendly English" using relatable analogies.  
-* **Environment Setup Guidance:** Analyzes configuration files (like Dockerfile or requirements.txt) to create copy-pasteable, step-by-step setup scripts.
+* **The "Jargon Buster" (Indic Bridge):** Acts as an AI mentor that simplifies dense technical documentation into "Student-Friendly" analogies, actively supporting regional languages (Hindi, Hinglish, Tamil, etc.).
+* **Beginner Issue Matcher:** Automatically hooks into GitHub GraphQL to fetch "Good First Issues" and crucially flags if they are already being worked on.
+* **DevLens Architect (Agentic Onboarding):** A state-aware conversational agent that graphs "blast radiuses", prints direct terminal setup commands, and reacts to system logs in real-time.
 
 ## **3\. Technical Architecture**
 

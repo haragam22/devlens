@@ -2,6 +2,15 @@
 
 DevLens is an AI-powered onboarding navigator that acts as a "Digital Senior Mentor" for your codebase.
 
+## Key Features
+1. **Repository Ingestion & Visualization:** Deterministic parsing of Python ASTs to generate comprehensive visual dependency graphs.
+2. **Issue-to-Code Mapping:** Hybrid Dense + Sparse Vector Search utilizing AWS Titan v2 and ChromaDB.
+3. **Architectural Intent:** Analyzes historical Pull Requests via GitHub GraphQL and OpenRouter to explain *why* code exists.
+4. **The Indic Bridge (Jargon Buster):** LLM-powered mentor that simplifies technical jargon in English, Hindi, Tamil, Hinglish, etc.
+5. **Environment Setup Guidance:** Scans repo configs to generate 1-click Bash/PowerShell setup scripts.
+6. **Beginner Issue Matcher:** Identifies "Good First Issues" and flags if they are actively being worked on in other PRs.
+7. **DevLens Architect (Agentic Onboarding):** End-to-end contribution planner that graphs blast-radiuses and reads terminal outputs.
+
 ## How to Run the Project Locally
 
 The project consists of a FastAPI backend and a Streamlit Tester UI. Both run from the `backend/` directory using Python 3.12.

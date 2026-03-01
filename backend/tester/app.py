@@ -58,8 +58,8 @@ if "vectorize_result" not in st.session_state:
 # ---------------------------------------------------------------------------
 # Tabs
 # ---------------------------------------------------------------------------
-tab_ingest, tab_graph, tab_vectorize, tab_search, tab_explain, tab_intent, tab_history, tab_setup = st.tabs([
-    "📥 Ingest", "🗺️ Graph", "🧠 Vectorize", "🔎 Search", "💬 Explain", "🎬 Intent", "📜 History", "🛠️ Setup"
+tab_ingest, tab_graph, tab_vectorize, tab_search, tab_explain, tab_intent, tab_history, tab_setup, tab_issues = st.tabs([
+    "📥 Ingest", "🗺️ Graph", "🧠 Vectorize", "🔎 Search", "💬 Explain", "🎬 Intent", "📜 History", "🛠️ Setup", "🎯 Issues"
 ])
 
 # ===========================================================================
@@ -322,8 +322,13 @@ with tab_search:
 # TAB 5 — EXPLAIN
 # ===========================================================================
 with tab_explain:
-    st.header("💬 Jargon Buster / Explain Code (Phase 2)")
-    st.markdown("Sends selected code to Claude 3.5 Sonnet for student-friendly explanation.")
+    st.header("💬 Jargon Buster / Explain Code (Phase 2 & 6)")
+    st.markdown("Sends selected code to AI for student-friendly explanation, supporting multiple languages (The Indic Bridge).")
+
+    lang_choice = st.selectbox(
+        "Explanation Language",
+        ["English", "Hindi", "Tamil", "Hinglish", "Telugu", "Marathi", "Bengali"]
+    )
 
     code_input = st.text_area(
         "Paste code or technical text to explain",
@@ -336,11 +341,11 @@ with tab_explain:
         if not code_input.strip():
             st.warning("Please paste some code or text.")
         else:
-            with st.spinner("Asking Claude..."):
+            with st.spinner(f"Asking AI to explain in {lang_choice}..."):
                 try:
                     r = httpx.post(
                         f"{base_url}/api/v1/explain",
-                        json={"content": code_input},
+                        json={"content": code_input, "language": lang_choice},
                         timeout=60,
                     )
                     if r.status_code == 200:
@@ -478,6 +483,59 @@ with tab_setup:
                         st.code(data.get("powershell_script", ""), language="powershell")
                     elif r.status_code == 404:
                         st.warning("❌ Repository not cloned yet. Ingest it in Tab 1 first.")
+                    else:
+                        st.error(f"❌ Error {r.status_code}: {r.text}")
+                except Exception as e:
+                    st.error(f"❌ Request failed: `{e}`")
+
+# ===========================================================================
+# TAB 9 — ISSUES (Phase 6)
+# ===========================================================================
+with tab_issues:
+    st.header("🎯 Good First Issue Matcher (Phase 6)")
+    st.markdown("Fetches issues labeled specifically for beginners, checking if there is already an active PR linked to them.")
+    
+    iss_owner = st.text_input("Owner", placeholder="e.g. realpython", key="issue_owner")
+    iss_repo = st.text_input("Repo", placeholder="e.g. reader", key="issue_repo")
+    
+    if st.session_state.ingest_result and not iss_owner:
+        repo_id = st.session_state.ingest_result.get("repo_id", "")
+        if "/" in repo_id:
+            i_owner_auto, i_repo_auto = repo_id.split("/", 1)
+            iss_owner = i_owner_auto
+            iss_repo = i_repo_auto
+            
+    if st.button("🔍 Find Beginner Issues", type="primary", use_container_width=True):
+        if not iss_owner.strip() or not iss_repo.strip():
+            st.warning("Please fill owner and repo.")
+        else:
+            with st.spinner("Scanning issues and their timelines..."):
+                try:
+                    r = httpx.get(
+                        f"{base_url}/api/v1/issues/recommend/{iss_owner.strip()}/{iss_repo.strip()}",
+                        timeout=30,
+                    )
+                    if r.status_code == 200:
+                        data = r.json()
+                        issues = data.get("recommended_issues", [])
+                        
+                        if not issues:
+                            st.info("No beginner-friendly issues found that are open.")
+                        else:
+                            st.success(f"✅ Found {len(issues)} beginner issues!")
+                            for issue in issues:
+                                if issue.get("in_progress"):
+                                    st.warning(f"⚠️ [In Progress] #{issue['number']} - {issue['title']}")
+                                    with st.expander(f"View Issue #{issue['number']} details"):
+                                        st.caption(f"[GitHub Link]({issue['url']})")
+                                        st.markdown(f"**Linked PRs:**")
+                                        for pr in issue.get("active_prs", []):
+                                            st.markdown(f"- {pr}")
+                                else:
+                                    st.success(f"🟢 [Available] #{issue['number']} - {issue['title']}")
+                                    with st.expander(f"View Issue #{issue['number']} details"):
+                                        st.caption(f"[GitHub Link]({issue['url']})")
+                                        st.markdown(f"**Preview:**\n{issue.get('body_preview', '')}")
                     else:
                         st.error(f"❌ Error {r.status_code}: {r.text}")
                 except Exception as e:

@@ -135,6 +135,7 @@ async def search(request: SearchRequest) -> SearchResponse:
 
 class ExplainRequest(BaseModel):
     content: str    # code snippet or documentation text
+    language: str = "English"  # Target language (e.g., Hindi, Tamil, Hinglish)
 
 
 class JargonTerm(BaseModel):
@@ -174,18 +175,21 @@ You MUST return ONLY a valid JSON object. Do not include markdown code blocks, t
 """
 
 
-@router.post("/explain", response_model=ExplainResponse, summary="Jargon Buster via Claude 3.5 Sonnet")
+@router.post("/explain", response_model=ExplainResponse, summary="Jargon Buster via OpenRouter Nemotron-3")
 async def explain(request: ExplainRequest) -> ExplainResponse:
     """
-    Sends code/text to Claude 3.5 Sonnet wrapped in XML sandboxing.
-    Returns a student-friendly explanation + jargon breakdown.
+    Sends code/text to Nemotron-3 wrapped in XML sandboxing.
+    Returns a student-friendly explanation + jargon breakdown in the specified language.
     """
     import json as _json
+
+    # Dynamically inject the requested language
+    system_prompt = _EXPLAIN_SYSTEM + f"\n\nCRITICAL LINGUISTIC INSTRUCTION: You MUST output all explanations and analogies in the following language: {request.language}. If the language is 'Hinglish', use Roman script with common English technical terms (e.g., 'Function call kar raha hai'). The output MUST STILL BE VALID JSON."
 
     user_msg = f"<untrusted_repository_data>\n{request.content[:6000]}\n</untrusted_repository_data>"
 
     try:
-        raw_response = await call_claude(_EXPLAIN_SYSTEM, user_msg, max_tokens=1500)
+        raw_response = await call_claude(system_prompt, user_msg, max_tokens=1500)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Claude call failed: {exc}")
 
@@ -350,5 +354,39 @@ async def get_setup(owner: str, repo: str) -> SetupResponse:
         )
     except Exception as exc:
         logger.exception("Setup generation failed")
+        raise HTTPException(status_code=500, detail=str(exc))
+
+# ---------------------------------------------------------------------------
+# "Good First Issue" Matcher (Phase 6)
+# ---------------------------------------------------------------------------
+
+class IssueRecommendation(BaseModel):
+    number: int
+    title: str
+    url: str
+    body_preview: str
+    in_progress: bool
+    active_prs: list[str]
+
+class RecommendIssuesResponse(BaseModel):
+    repo_id: str
+    recommended_issues: list[IssueRecommendation]
+
+@router.get("/issues/recommend/{owner}/{repo}", response_model=RecommendIssuesResponse, summary="Fetch Good First Issues")
+async def recommend_issues(owner: str, repo: str) -> RecommendIssuesResponse:
+    """
+    Fetches issues labeled as good first issue, checking their timelines 
+    for connected open PRs to flag if they are already in progress.
+    """
+    from app.services.github_issues import fetch_beginner_issues
+    
+    try:
+        issues = await fetch_beginner_issues(owner, repo)
+        return RecommendIssuesResponse(
+            repo_id=f"{owner}/{repo}",
+            recommended_issues=issues
+        )
+    except Exception as exc:
+        logger.exception("Issue recommendation failed")
         raise HTTPException(status_code=500, detail=str(exc))
 
