@@ -28,7 +28,7 @@ This document tracks the delivery of features outlined in the project's strategy
 
 ---
 
-## 3. The 5 Core Features
+## 3. The Core Features
 
 | Feature | Design Target | Implementation Status | Notes |
 | :--- | :--- | :--- | :--- |
@@ -39,6 +39,7 @@ This document tracks the delivery of features outlined in the project's strategy
 | **Feature 5: Environment Setup Guidance**| Deterministic setup script generation. | ✅ Implemented | `GET /api/v1/setup/{owner}/{repo}` scans `package.json`, `Dockerfile`, etc., producing Bash/PowerShell scripts. |
 | **Feature 6: Beginner Issue Matcher**| Finds open beginner issues and detects if active PRs are linked. | ✅ Implemented | `GET /api/v1/issues/recommend` queries GraphQL to extract `good first issue` markers and cross-referencing timeline PRs. |
 | **Feature 7: DevLens Architect**| End-to-End Agentic Contribution Planner (Mission Control & Git Commander). | ❌ Not Implemented | Phase 7 is planned. Backend needs a stateful session router (`POST /api/v1/chatbot`). |
+| **Feature 8: Personalization & Feasibility**| Repo Gatekeeper, User Context Engine, and Anti-Gravity Handover | ❌ Not Implemented | Phase 8 is planned. Pre-ingestion check and dynamic prompt injection. |
 
 ---
 
@@ -55,7 +56,7 @@ This document tracks the delivery of features outlined in the project's strategy
 
 While the backend infrastructure is feature-complete for Phase 1 through 6, the following critical steps remain:
 
-1. **Phase 7: The DevLens Architect (Backend Agent):** A stateful session machine must be built for `POST /api/v1/chatbot`. This agent will need to be wired into the Graph (to calculate blast radius) and provide tactical git commands.
+1. **Phase 7 & 8 (Backend Integration):** Build a stateful session machine for `POST /api/v1/chatbot` (DevLens Architect), create the `GET /api/v1/gatekeeper` endpoint for repo auditing, and wire the `user_profile` headers to the dynamic prompt generator.
 2. **Frontend Presentation Layer:** The React + Tailwind SPA intended for the final product needs to be built and wired to the FastAPI endpoints. The Force-Directed Graph visualization must be implemented using `react-force-graph`.
 3. **Context Window Degradation (Map-Reduce):** The implementation plan mentions a Map-Reduce capability if PR history (Architectural Intent) exceeds 15,000 tokens ("Lost in the Middle" mitigation). Currently, the system just trims context; a true map-reduce summarization step is pending if scale requires it.
 4. **Advanced Tree-Sitter Grammars:** The Tree-Sitter pipeline currently works excellently for Python natively, but the environment may need script compilation steps for extended JavaScript, TypeScript, or Go parsing depending on deployment.

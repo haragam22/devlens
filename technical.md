@@ -138,3 +138,16 @@ Instead of a stateless FAQ router, Phase 7 introduces a highly state-aware Pair 
 
 **4. Terminal Output Feedback Loop**
 * **Technical Implementation:** A `POST /api/v1/chatbot` update endpoint receives raw terminal output (e.g., `ModuleNotFoundError`). The agent, knowing the exact mission context, replies specifically to debug the system log rather than treating it as a standard user chat message.
+
+## ---
+
+**Phase 8: The "Personalization & Feasibility" Layer**
+
+**1. The "Gatekeeper" (Repo Health Audit)**
+* **Technical Implementation:** A pre-ingestion check (`GET /api/v1/gatekeeper?url=...`). It uses the GitHub REST API to assess standard liveness parameters (last commit > 1 year), competition (open PRs > 50), and complexity (checking `package.json` or `requirements.txt` sizes). The frontend blocks ingestion for "dead" or "expert" repos without explicit user override.
+
+**2. The User Context Engine**
+* **Technical Implementation:** Instead of a complex user database, DevLens maintains a stateless backend. The frontend (`frontend.md`) captures User Level, Language, and Goal inside Zustand. This JSON `user_profile` object is passed as a header in every request. The RAG_Orchestrator dynamically injects this into the system prompt to explicitly shift tone (e.g., using simpler analogies for Students).
+
+**3. Anti-Gravity Handover**
+* **Technical Implementation:** The Setup Generator detects the specific package manager to generate aggressive, high-context, 1-click terminal blocks (e.g., chaining `git clone`, `poetry install`, and `git checkout -b`). An LLM validation step explicitly prefixes the string with safety warnings ("Verify node v18+ is installed").

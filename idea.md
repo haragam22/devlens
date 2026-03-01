@@ -18,6 +18,7 @@
 * **The "Jargon Buster" (Indic Bridge):** Acts as an AI mentor that simplifies dense technical documentation into "Student-Friendly" analogies, actively supporting regional languages (Hindi, Hinglish, Tamil, etc.).
 * **Beginner Issue Matcher:** Automatically hooks into GitHub GraphQL to fetch "Good First Issues" and crucially flags if they are already being worked on.
 * **DevLens Architect (Agentic Onboarding):** A state-aware conversational agent that graphs "blast radiuses", prints direct terminal setup commands, and reacts to system logs in real-time.
+* **Personalized Feasibility Engine:** Uses a pre-flight "Gatekeeper" to warn beginners off dead or highly complex repos, while modifying its own AI tone based on the user's skill level and language entirely dynamically.
 
 ## **3\. Technical Architecture**
 
