@@ -58,8 +58,8 @@ if "vectorize_result" not in st.session_state:
 # ---------------------------------------------------------------------------
 # Tabs
 # ---------------------------------------------------------------------------
-tab_ingest, tab_graph, tab_vectorize, tab_search, tab_explain, tab_intent = st.tabs([
-    "📥 Ingest", "🗺️ Graph", "🧠 Vectorize", "🔎 Search", "💬 Explain", "🎬 Intent"
+tab_ingest, tab_graph, tab_vectorize, tab_search, tab_explain, tab_intent, tab_history, tab_setup = st.tabs([
+    "📥 Ingest", "🗺️ Graph", "🧠 Vectorize", "🔎 Search", "💬 Explain", "🎬 Intent", "📜 History", "🛠️ Setup"
 ])
 
 # ===========================================================================
@@ -385,6 +385,99 @@ with tab_intent:
                         st.success(f"✅ Analyzed {data.get('commits_analyzed', 0)} commits.")
                         st.markdown("### 🏛 Architectural Intent")
                         st.info(data.get("intent_summary", ""))
+                    else:
+                        st.error(f"❌ Error {r.status_code}: {r.text}")
+                except Exception as e:
+                    st.error(f"❌ Request failed: `{e}`")
+
+# ===========================================================================
+# TAB 7 — HISTORY (Phase 5)
+# ===========================================================================
+with tab_history:
+    st.header("📜 Institutional Memory (GraphQL)")
+    st.markdown("Fetches the last 50 merged PRs, their linked issues, and changed files concurrently using GraphQL.")
+    
+    h_owner = st.text_input("Owner", placeholder="e.g. fastapi", key="history_owner")
+    h_repo = st.text_input("Repo", placeholder="e.g. fastapi", key="history_repo")
+    
+    # Auto-fill from last ingest
+    if st.session_state.ingest_result and not h_owner:
+        repo_id = st.session_state.ingest_result.get("repo_id", "")
+        if "/" in repo_id:
+            h_owner_auto, h_repo_auto = repo_id.split("/", 1)
+            st.caption(f"💡 Defaulting to ingested: `{repo_id}`")
+            h_owner = h_owner_auto
+            h_repo = h_repo_auto
+            
+    if st.button("fetch History", type="primary", use_container_width=True):
+        if not h_owner.strip() or not h_repo.strip():
+            st.warning("Please fill owner and repo.")
+        else:
+            with st.spinner("Executing GraphQL query..."):
+                try:
+                    t0 = time.time()
+                    r = httpx.get(
+                        f"{base_url}/api/v1/history/{h_owner.strip()}/{h_repo.strip()}",
+                        timeout=60,
+                    )
+                    elapsed = time.time() - t0
+                    if r.status_code == 200:
+                        data = r.json()
+                        prs = data.get("pull_requests", [])
+                        st.success(f"✅ Fetched {len(prs)} PRs in {elapsed:.2f}s")
+                        
+                        for pr in prs:
+                            with st.expander(f"📌 {pr.get('title')} (by {pr.get('author')})"):
+                                st.caption(f"Merged at: {pr.get('merged_at')} | [View PR]({pr.get('url')})")
+                                if pr.get('linked_issues'):
+                                    st.markdown("**Linked Issues:**")
+                                    for issue in pr['linked_issues']:
+                                        st.markdown(f"- [#{issue['number']} {issue['title']}]({issue['url']})")
+                                if pr.get('changed_files'):
+                                    st.markdown("**Files Changed (sample):**")
+                                    st.code("\\n".join(pr['changed_files'][:10]), language="text")
+                    else:
+                        st.error(f"❌ Error {r.status_code}: {r.text}")
+                except Exception as e:
+                    st.error(f"❌ Request failed: `{e}`")
+
+# ===========================================================================
+# TAB 8 — SETUP (Phase 5)
+# ===========================================================================
+with tab_setup:
+    st.header("🛠️ Automated Onboarding (Phase 5)")
+    st.markdown("Generates copy-pasteable setup scripts after scanning the repository configuration.")
+    
+    set_owner = st.text_input("Owner", placeholder="e.g. realpython", key="setup_owner")
+    set_repo = st.text_input("Repo", placeholder="e.g. reader", key="setup_repo")
+    
+    # Auto-fill from last ingest
+    if st.session_state.ingest_result and not set_owner:
+        repo_id = st.session_state.ingest_result.get("repo_id", "")
+        if "/" in repo_id:
+            s_owner_auto, s_repo_auto = repo_id.split("/", 1)
+            set_owner = s_owner_auto
+            set_repo = s_repo_auto
+            
+    if st.button("⚙️ Generate Scripts", type="primary", use_container_width=True):
+        if not set_owner.strip() or not set_repo.strip():
+            st.warning("Please fill owner and repo.")
+        else:
+            with st.spinner("Scanning configuration files..."):
+                try:
+                    r = httpx.get(
+                        f"{base_url}/api/v1/setup/{set_owner.strip()}/{set_repo.strip()}",
+                        timeout=30,
+                    )
+                    if r.status_code == 200:
+                        data = r.json()
+                        st.success("✅ Scripts generated")
+                        st.markdown("### Bash (Linux/Mac)")
+                        st.code(data.get("bash_script", ""), language="bash")
+                        st.markdown("### PowerShell (Windows)")
+                        st.code(data.get("powershell_script", ""), language="powershell")
+                    elif r.status_code == 404:
+                        st.warning("❌ Repository not cloned yet. Ingest it in Tab 1 first.")
                     else:
                         st.error(f"❌ Error {r.status_code}: {r.text}")
                 except Exception as e:

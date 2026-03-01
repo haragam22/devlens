@@ -2,7 +2,7 @@
 
 * **Frontend:** React \+ Tailwind CSS \+ react-force-graph (for the visualization) \+ framer-motion (for "crazy" animations).  
 * **Backend:** FastAPI \+ asyncio (for concurrency) \+ Tree-sitter (parsing) \+ ChromaDB (vector store).  
-* **AI:** AWS Bedrock (Claude 3.5 Sonnet \+ Titan Embeddings v2).
+* **AI:** OpenRouter (`nvidia/nemotron-3-nano-30b-a3b:free`) + AWS Bedrock (Titan Embeddings v2).
 
 ### ---
 
@@ -63,7 +63,7 @@
    * Perform **Hybrid Search** (Dense Vector \+ Sparse BM25) \+ Reranking to find relevant files for a query.
 
 2. **Mentor Endpoint (Jargon Buster):** Implement POST /api/v1/explain.  
-   * Send selected code/text to Claude 3.5 Sonnet with a prompt to identify jargon and explain it simply.
+   * Send selected code/text to OpenRouter (Nemotron-3) with a prompt to identify jargon and explain it simply.
 
 3. **Intent Endpoint:** Fetch PR history for a file, summarize it using Map-Reduce if token count \> 15k, and return the "Architectural Intent".
 

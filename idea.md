@@ -24,7 +24,8 @@ DevLens is built for scale and speed, utilizing a robust three-tier architecture
 
 * **Frontend Presentation Layer:** Built with React and Tailwind CSS for a high-performance Single Page Application (SPA). Utilizes Generative UI (v0.dev) for a distraction-free developer interface.  
 * **Backend API Layer:** Powered by FastAPI (Python) for asynchronous, high-concurrency API routing. Uses PyGithub and GitPython to handle real-time repository ingestion, issue fetching, and cloning.  
-* **AI & ML Layer (Powered by AWS):** \* **Amazon Bedrock:** Orchestrates Claude 3.5 Sonnet for superior code reasoning, architectural synthesis, and jargon simplification.  
+* **AI & ML Layer (Powered by OpenRouter & AWS):** 
+  * **OpenRouter (Nemotron-3):** Orchestrates `nvidia/nemotron-3-nano-30b-a3b:free` for superior code reasoning, architectural synthesis, and jargon simplification.  
   * **Amazon Titan Embeddings v2:** Generates high-dimensional vector embeddings for code chunks (up to 8k token context) for cost-optimized semantic search.  
 * **Data & Memory Layer:** \* **ChromaDB:** A local vector store for low-latency retrieval-augmented generation (RAG).  
   * **Python AST (Abstract Syntax Tree):** A parsing engine used to generate 100% accurate, deterministic dependency graphs.

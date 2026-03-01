@@ -29,7 +29,8 @@ cp .env.example .env
 ```
 Open `.env` and add:
 - `GITHUB_PAT`: Your GitHub Personal Access Token (prevents rate limits during ingestion)
-- `AWS_ACCESS_KEY_ID` & `AWS_SECRET_ACCESS_KEY`: Required for Phase 2 AI features (AWS Bedrock)
+- `OPENROUTER_API_KEY`: Required for Phase 2 AI features (OpenRouter Nemotron-3)
+- `AWS_ACCESS_KEY_ID` & `AWS_SECRET_ACCESS_KEY`: Required for Phase 2 AI embeddings (AWS Titan v2)
 
 ---
 
