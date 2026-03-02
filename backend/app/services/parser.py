@@ -52,6 +52,7 @@ class Node(BaseModel):
     id: str          # relative file path, e.g. "src/utils/helpers.py"
     language: str
     size_bytes: int
+    extracted_names: list[str] = []
 
 
 class Edge(BaseModel):
@@ -129,6 +130,36 @@ QUERY_MAP: dict[str, str] = {
     "go":         _GO_IMPORT_QUERY,
 }
 
+# ---------------------------------------------------------------------------
+# Tree-sitter query strings per language for functions
+# ---------------------------------------------------------------------------
+
+_PY_FUNCTION_QUERY = """
+(class_definition name: (identifier) @function)
+(function_definition name: (identifier) @function)
+"""
+
+_JS_FUNCTION_QUERY = """
+(class_declaration name: (identifier) @function)
+(function_declaration name: (identifier) @function)
+(method_definition name: (property_identifier) @function)
+(variable_declarator name: (identifier) @function value: [(arrow_function) (function)])
+"""
+
+_GO_FUNCTION_QUERY = """
+(type_spec name: (type_identifier) @function)
+(function_declaration name: (identifier) @function)
+(method_declaration name: (field_identifier) @function)
+"""
+
+FUNC_QUERY_MAP: dict[str, str] = {
+    "python":     _PY_FUNCTION_QUERY,
+    "javascript": _JS_FUNCTION_QUERY,
+    "typescript": _JS_FUNCTION_QUERY,
+    "tsx":        _JS_FUNCTION_QUERY,
+    "go":         _GO_FUNCTION_QUERY,
+}
+
 
 def _extract_imports(source: bytes, lang_name: str) -> list[str]:
     """Use Tree-sitter to extract all import strings from a file's source."""
@@ -150,6 +181,27 @@ def _extract_imports(source: bytes, lang_name: str) -> list[str]:
         return imports
     except Exception:
         # Tree-sitter failures are non-fatal — log and continue
+        return []
+
+def _extract_functions(source: bytes, lang_name: str) -> list[str]:
+    """Use Tree-sitter to extract all function names from a file's source."""
+    try:
+        language = get_language(lang_name)
+        parser = get_parser(lang_name)
+        tree = parser.parse(source)
+        query_src = FUNC_QUERY_MAP.get(lang_name, "")
+        if not query_src:
+            return []
+
+        query = language.query(query_src)
+        captures = query.captures(tree.root_node)
+        functions: list[str] = []
+        for node, _ in captures:
+            raw = node.text.decode(errors="replace").strip()
+            if raw:
+                functions.append(raw)
+        return functions
+    except Exception:
         return []
 
 
@@ -228,6 +280,7 @@ def parse_repository(clone_path: str | Path) -> GraphData:
         # Read and parse
         try:
             source = abs_path.read_bytes()
+            nodes[-1].extracted_names = _extract_functions(source, lang)
         except OSError:
             skipped.append(f"{rel_path} [read error]")
             continue

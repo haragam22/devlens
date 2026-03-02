@@ -168,6 +168,13 @@ Script Generation: Based on the detected stack, the system dynamically generates
 
 
 
+**3. Code Entity Extraction & Indexing**
+
+* **The Problem:** The frontend needs to know what functions, classes, and methods exist within each file to help users jump to the exact symbol they need to understand or modify.
+* **Technical Implementation:**
+  * **Tree-sitter Entity Queries:** Enhance the existing AST parsing in `app/services/parser.py` (which previously only found imports) to also execute language-specific queries (Python, JS/TS, Go) for `function_definition`, `class_definition`, `method_definition`, etc.
+  * **Node Enhancement:** Append an `extracted_names` array to every file `Node` returned in the `GET /api/v1/repository/graph` endpoint payload, giving complete symbol visibility per file.
+
 ### ---
 
 You are absolutely right. The previous "Router" model was just a glorified FAQ bot. To make "Repo Buddy" truly valuable—and to win the Hackathon—it needs to be an **Agentic Workflow Engine**, not just a chatbot.
