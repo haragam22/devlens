@@ -252,7 +252,7 @@ poetry install
 
 ```
 
-**5. The "Mission Update" Loop (Validation)**
+**5a. The "Mission Update" Loop (Validation)**
 
 * **The Problem:** The Agent fires-and-forgets instructions. It needs to react to terminal outputs.
 * **Technical Implementation:**
@@ -266,6 +266,31 @@ poetry install
 }
 
 ```
+
+
+
+#### **5b. "Mission Update" Loop (The Error Handler)**
+
+* **Logic:**
+* **Input:** Terminal Output (`Error: 401 Unauthorized`).
+* **Action:** The Agent doesn't just "Analyze." It performs a **"Rollback Check."**
+* *Prompt:* "Did the last command *cause* this error, or did it *reveal* an existing one?"
+* If it *caused* it, the next step is automatically: `git checkout .` (Revert).
+
+
+#### **6. The "Sniper" (Context Pruner)**
+
+* **Role:** sits between the "Investigator" and the "Tactical Planner."
+* **Logic:**
+1. Investigator finds `auth.py` (2000 lines).
+2. Sniper asks LLM: *"Based on the issue 'Login Failed', which functions in `auth.py` are relevant?"*
+3. LLM responds: `login()` and `verify_token()`.
+4. Sniper extracts *only* those 50 lines + imports.
+5. **Result:** High-signal context, low token usage.
+
+
+
+
 
 
 * **Logic:** If `type == "terminal_output"`, the Agent uses a different prompt: *"Analyze this error log specifically against the previous instruction. Do not change the subject."*

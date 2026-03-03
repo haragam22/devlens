@@ -136,6 +136,7 @@ async def search(request: SearchRequest) -> SearchResponse:
 class ExplainRequest(BaseModel):
     content: str    # code snippet or documentation text
     language: str = "English"  # Target language (e.g., Hindi, Tamil, Hinglish)
+    user_profile: dict | None = None  # {level, language, goal} for persona-aware tone
 
 
 class JargonTerm(BaseModel):
@@ -185,6 +186,17 @@ async def explain(request: ExplainRequest) -> ExplainResponse:
 
     # Dynamically inject the requested language
     system_prompt = _EXPLAIN_SYSTEM + f"\n\nCRITICAL LINGUISTIC INSTRUCTION: You MUST output all explanations and analogies in the following language: {request.language}. If the language is 'Hinglish', use Roman script with common English technical terms (e.g., 'Function call kar raha hai'). The output MUST STILL BE VALID JSON."
+
+    # Phase 8: Inject persona modifier if user_profile provided
+    if request.user_profile:
+        from app.services.persona import UserProfile, build_persona_modifier
+        try:
+            profile = UserProfile(**request.user_profile)
+            modifier = build_persona_modifier(profile)
+            if modifier:
+                system_prompt += f"\n\nUSER PERSONA CONTEXT:\n{modifier}"
+        except Exception:
+            pass  # ignore malformed profiles
 
     user_msg = f"<untrusted_repository_data>\n{request.content[:6000]}\n</untrusted_repository_data>"
 
@@ -390,3 +402,24 @@ async def recommend_issues(owner: str, repo: str) -> RecommendIssuesResponse:
         logger.exception("Issue recommendation failed")
         raise HTTPException(status_code=500, detail=str(exc))
 
+# ---------------------------------------------------------------------------
+# Gatekeeper (Phase 8: Repo Health Audit)
+# ---------------------------------------------------------------------------
+
+@router.get("/gatekeeper/{owner}/{repo}", summary="Pre-ingestion repo health audit")
+async def gatekeeper(owner: str, repo: str) -> dict:
+    """
+    Audits a repository's health before ingestion:
+    - Liveness (last push date)
+    - Competition (open PR count)
+    - Complexity (dependency count)
+    Returns a verdict: Beginner Friendly / Moderate / Not Recommended.
+    """
+    from app.services.gatekeeper import audit_repository
+
+    try:
+        verdict = await audit_repository(owner, repo)
+        return verdict.model_dump()
+    except Exception as exc:
+        logger.exception("Gatekeeper audit failed")
+        raise HTTPException(status_code=500, detail=str(exc))

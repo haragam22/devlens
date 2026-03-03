@@ -5,13 +5,13 @@ DevLens Backend – FastAPI entrypoint
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import repository, intelligence
+from app.routers import repository, intelligence, chatbot
 
 app = FastAPI(
     title="DevLens API",
     description=(
         "AI-powered codebase navigator. "
-        "Phase 1: Ingestion & Tree-sitter dependency graph."
+        "Phases 1-7: Ingestion, Graph, Intelligence & Architect Agent."
     ),
     version="0.1.0",
     docs_url="/docs",
@@ -34,6 +34,7 @@ app.add_middleware(
 # ---------------------------------------------------------------------------
 app.include_router(repository.router)
 app.include_router(intelligence.router)
+app.include_router(chatbot.router)
 
 
 # ---------------------------------------------------------------------------
