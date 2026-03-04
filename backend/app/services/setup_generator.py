@@ -84,7 +84,52 @@ def generate_setup_script(clone_path: str) -> Dict[str, str]:
         bash_lines.append("echo 'No standard configuration files detected.'")
         ps1_lines.append("Write-Host 'No standard configuration files detected.'")
 
+    # ── Phase 8: Safety warnings ──
+    safety_warnings: list[str] = []
+    safety_warnings.append("Make sure you have git installed (run 'git --version' to check).")
+
+    # Detect Python version from pyproject.toml
+    if has_pyproject:
+        try:
+            pyproject_text = (root / "pyproject.toml").read_text(errors="replace")
+            import re
+            # Look for requires-python = ">=3.10" or python = "^3.10" etc.
+            match = re.search(r'(?:requires-python|python)\s*=\s*["\']([^"\']+)["\']', pyproject_text)
+            if match:
+                safety_warnings.append(
+                    f"This project requires Python {match.group(1)}. "
+                    "Check your version with 'python --version' before proceeding."
+                )
+        except Exception:
+            pass
+
+    # Detect Node version from .nvmrc
+    if (root / ".nvmrc").exists():
+        try:
+            node_version = (root / ".nvmrc").read_text().strip()
+            safety_warnings.append(
+                f"This project expects Node.js {node_version}. "
+                "Check your version with 'node --version'."
+            )
+        except Exception:
+            pass
+
+    # Detect Node version from package.json engines
+    if has_package_json:
+        try:
+            import json
+            pkg = json.loads((root / "package.json").read_text(errors="replace"))
+            engines = pkg.get("engines", {})
+            if "node" in engines:
+                safety_warnings.append(
+                    f"package.json requires Node.js {engines['node']}. "
+                    "Check your version with 'node --version'."
+                )
+        except Exception:
+            pass
+
     return {
         "bash": "\n".join(bash_lines),
-        "powershell": "\n".join(ps1_lines)
+        "powershell": "\n".join(ps1_lines),
+        "safety_warnings": safety_warnings,
     }

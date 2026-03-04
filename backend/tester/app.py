@@ -43,7 +43,13 @@ with st.sidebar:
             st.error(f"❌ Cannot reach server  \n`{e}`")
 
     st.markdown("---")
-    st.caption("Phase 1 tabs: Ingest, Graph  \nPhase 2 tabs: Search, Explain (coming soon)")
+    st.caption("Phases 1-8: Ingest, Graph, Vectorize, Search, Explain, Intent, History, Setup, Issues, Gatekeeper, Repo Buddy")
+
+    st.markdown("---")
+    st.subheader("🎭 User Profile")
+    profile_level = st.selectbox("Skill Level", ["student", "junior", "senior"], index=1, key="profile_level")
+    profile_lang = st.selectbox("Language", ["English", "Hindi", "Hinglish", "Tamil", "Telugu", "Marathi", "Bengali"], key="profile_lang")
+    profile_goal = st.selectbox("Goal", ["contributing", "learning"], key="profile_goal")
 
 # ---------------------------------------------------------------------------
 # Session state helpers
@@ -54,12 +60,16 @@ if "graph_result" not in st.session_state:
     st.session_state.graph_result = None
 if "vectorize_result" not in st.session_state:
     st.session_state.vectorize_result = None
+if "chat_messages" not in st.session_state:
+    st.session_state.chat_messages = []
+if "active_mission" not in st.session_state:
+    st.session_state.active_mission = None
 
 # ---------------------------------------------------------------------------
 # Tabs
 # ---------------------------------------------------------------------------
-tab_ingest, tab_graph, tab_vectorize, tab_search, tab_explain, tab_intent, tab_history, tab_setup, tab_issues = st.tabs([
-    "📥 Ingest", "🗺️ Graph", "🧠 Vectorize", "🔎 Search", "💬 Explain", "🎬 Intent", "📜 History", "🛠️ Setup", "🎯 Issues"
+tab_ingest, tab_graph, tab_vectorize, tab_search, tab_explain, tab_intent, tab_history, tab_setup, tab_issues, tab_gatekeeper, tab_buddy = st.tabs([
+    "📥 Ingest", "🗺️ Graph", "🧠 Vectorize", "🔎 Search", "💬 Explain", "🎬 Intent", "📜 History", "🛠️ Setup", "🎯 Issues", "🛡️ Gatekeeper", "🤖 Repo Buddy"
 ])
 
 # ===========================================================================
@@ -219,8 +229,15 @@ with tab_graph:
             if nodes:
                 df_nodes = pd.DataFrame(nodes)
                 df_nodes["size_kb"] = (df_nodes["size_bytes"] / 1024).round(2)
+                
+                if "extracted_names" in df_nodes.columns:
+                    df_nodes["Entities"] = df_nodes["extracted_names"].apply(lambda x: ", ".join(x) if isinstance(x, list) else "")
+                    cols_to_show = ["id", "language", "size_kb", "Entities"]
+                else:
+                    cols_to_show = ["id", "language", "size_kb"]
+                    
                 st.dataframe(
-                    df_nodes[["id", "language", "size_kb"]].rename(columns={
+                    df_nodes[cols_to_show].rename(columns={
                         "id": "File", "language": "Lang", "size_kb": "Size (KB)"
                     }),
                     use_container_width=True,
@@ -540,3 +557,219 @@ with tab_issues:
                         st.error(f"❌ Error {r.status_code}: {r.text}")
                 except Exception as e:
                     st.error(f"❌ Request failed: `{e}`")
+
+# ===========================================================================
+# TAB 10 — GATEKEEPER (Phase 8: Repo Health Audit)
+# ===========================================================================
+with tab_gatekeeper:
+    st.header("🛡️ Gatekeeper — Repo Health Audit")
+    st.markdown("Pre-ingestion check: evaluates whether a repository is healthy, active, and beginner-friendly before you invest time cloning and parsing it.")
+
+    gk_owner = st.text_input("Owner", placeholder="e.g. pallets", key="gk_owner")
+    gk_repo = st.text_input("Repo", placeholder="e.g. flask", key="gk_repo")
+
+    if st.session_state.ingest_result and not gk_owner:
+        repo_id = st.session_state.ingest_result.get("repo_id", "")
+        if "/" in repo_id:
+            st.caption(f"💡 Last ingested: `{repo_id}`")
+
+    if st.button("🛡️ Run Health Audit", type="primary", use_container_width=True):
+        owner = gk_owner.strip()
+        repo = gk_repo.strip()
+        if not owner or not repo:
+            st.warning("Please fill owner and repo.")
+        else:
+            with st.spinner("Auditing repository health..."):
+                try:
+                    r = httpx.get(
+                        f"{base_url}/api/v1/gatekeeper/{owner}/{repo}",
+                        timeout=30,
+                    )
+                    if r.status_code == 200:
+                        data = r.json()
+                        verdict = data.get("verdict", "Unknown")
+
+                        # Show verdict with appropriate styling
+                        if "✅" in verdict:
+                            st.success(f"**{verdict}**")
+                        elif "🟡" in verdict:
+                            st.warning(f"**{verdict}**")
+                        else:
+                            st.error(f"**{verdict}**")
+
+                        # Metrics
+                        m1, m2, m3, m4 = st.columns(4)
+                        m1.metric("❤️ Liveness", data.get("liveness", "unknown").title())
+                        m2.metric("📅 Days Since Push", data.get("days_since_push", "?"))
+                        m3.metric("🔀 Open PRs", data.get("open_prs", "?"))
+                        m4.metric("📦 Dependencies", data.get("dependency_count", 0))
+
+                        # Warnings
+                        warnings = data.get("warnings", [])
+                        if warnings:
+                            st.markdown("### ⚠️ Warnings")
+                            for w in warnings:
+                                st.markdown(f"- {w}")
+
+                        with st.expander("📂 Raw JSON"):
+                            st.json(data)
+                    else:
+                        st.error(f"❌ Error {r.status_code}: {r.text}")
+                except Exception as e:
+                    st.error(f"❌ Request failed: `{e}`")
+
+# ===========================================================================
+# TAB 11 — REPO BUDDY (Phase 7+8: DevLens Architect)
+# ===========================================================================
+with tab_buddy:
+    st.header("🤖 Repo Buddy — Your AI Pair Programmer")
+
+    # ── Info banner: what the chatbot can do ──
+    st.markdown("""
+    > **DevLens Architect** is an agentic chatbot that guides you through contributing to any GitHub repo — from picking an issue to pushing your fix.
+
+    | Capability | What it does |
+    |---|---|
+    | 🐛 **Bug Fix Mode (Exterminator)** | Helps you reproduce, locate, and fix bugs step-by-step |
+    | 🏗️ **Feature Mode (Builder)** | Plans where new code fits in the architecture |
+    | 🧹 **Refactor Mode (Janitor)** | Ensures dependency safety when cleaning up code |
+    | 🎯 **Blast Radius** | Shows which files will break if you touch the target |
+    | 📋 **Mission Plans** | Generates actionable checklists (Reproduce → Fix → Verify) |
+    | 🚀 **Git Commands** | Ready-to-paste terminal commands with auto-detected setup |
+
+    **How to use:** Enter the repo details, type an issue description (or paste one), and optionally provide an issue number to start a full mission.
+    """)
+
+    st.markdown("---")
+
+    # ── Repo inputs ──
+    col_b1, col_b2, col_b3 = st.columns([2, 2, 1])
+    with col_b1:
+        buddy_owner = st.text_input("Owner", placeholder="e.g. pallets", key="buddy_owner")
+    with col_b2:
+        buddy_repo = st.text_input("Repo", placeholder="e.g. flask", key="buddy_repo")
+    with col_b3:
+        buddy_issue_num = st.text_input("Issue # (optional)", placeholder="e.g. 42", key="buddy_issue_num")
+
+    # Auto-fill hint from last ingest
+    if st.session_state.ingest_result and not buddy_owner:
+        repo_id = st.session_state.ingest_result.get("repo_id", "")
+        if "/" in repo_id:
+            st.caption(f"💡 Tip: Last ingested repo is `{repo_id}`")
+
+    # ── Message type toggle ──
+    msg_type = st.radio(
+        "Message type",
+        ["💬 Chat / Issue Description", "🖥️ Terminal Output"],
+        horizontal=True,
+        key="buddy_msg_type",
+    )
+    is_terminal = msg_type.startswith("🖥️")
+
+    # ── Active mission indicator ──
+    if st.session_state.active_mission:
+        mission = st.session_state.active_mission
+        mode_emoji = {"exterminator": "🐛", "builder": "🏗️", "janitor": "🧹"}.get(mission.get("mode", ""), "🤖")
+        st.info(f"{mode_emoji} Active Mission: **{mission.get('mission_id', '')}** (Mode: {mission.get('mode', 'unknown')})")
+
+    # ── Display chat history ──
+    for msg in st.session_state.chat_messages:
+        with st.chat_message(msg["role"]):
+            st.markdown(msg["content"])
+
+    # ── Chat input ──
+    if prompt := st.chat_input("Describe the issue, ask a question, or paste terminal output..."):
+        # Display user message
+        st.session_state.chat_messages.append({"role": "user", "content": prompt})
+        with st.chat_message("user"):
+            st.markdown(prompt)
+
+        # Build the API payload
+        owner = buddy_owner.strip() if buddy_owner else ""
+        repo = buddy_repo.strip() if buddy_repo else ""
+
+        if not owner or not repo:
+            assistant_msg = "⚠️ Please enter the **Owner** and **Repo** fields above before chatting."
+            st.session_state.chat_messages.append({"role": "assistant", "content": assistant_msg})
+            with st.chat_message("assistant"):
+                st.markdown(assistant_msg)
+        else:
+            payload = {
+                "owner": owner,
+                "repo": repo,
+                "message": prompt,
+                "type": "terminal_output" if is_terminal else "user_chat",
+                "user_profile": {
+                    "level": st.session_state.get("profile_level", "junior"),
+                    "language": st.session_state.get("profile_lang", "English"),
+                    "goal": st.session_state.get("profile_goal", "contributing"),
+                },
+            }
+
+            # If issue number is provided and no active mission, start a new mission
+            issue_num_str = buddy_issue_num.strip() if buddy_issue_num else ""
+            if issue_num_str.isdigit() and not st.session_state.active_mission:
+                payload["issue_number"] = int(issue_num_str)
+
+            # If there's an active mission, include the mission_id
+            if st.session_state.active_mission:
+                payload["mission_id"] = st.session_state.active_mission.get("mission_id")
+
+            # Call the API
+            with st.chat_message("assistant"):
+                with st.spinner("🤖 Architect is thinking..."):
+                    try:
+                        r = httpx.post(
+                            f"{base_url}/api/v1/chatbot",
+                            json=payload,
+                            timeout=120,
+                        )
+                        if r.status_code == 200:
+                            data = r.json()
+                            reply = data.get("reply", "No response.")
+
+                            # Update active mission state
+                            if data.get("mission_id"):
+                                st.session_state.active_mission = {
+                                    "mission_id": data["mission_id"],
+                                    "mode": data.get("mode"),
+                                }
+
+                            st.markdown(reply)
+
+                            # Show structured data in expanders
+                            if data.get("relevant_files"):
+                                with st.expander("🎯 Relevant Files"):
+                                    for f in data["relevant_files"]:
+                                        st.markdown(f"- `{f}`")
+
+                            if data.get("blast_radius"):
+                                with st.expander("⚠️ Blast Radius"):
+                                    for f in data["blast_radius"]:
+                                        st.markdown(f"- `{f}`")
+
+                            if data.get("git_commands"):
+                                with st.expander("🚀 Git Commands (copy-paste ready)"):
+                                    st.code(data["git_commands"], language="bash")
+
+                        else:
+                            reply = f"❌ Error {r.status_code}: {r.text}"
+                            st.error(reply)
+
+                    except Exception as e:
+                        reply = f"❌ Request failed: `{e}`"
+                        st.error(reply)
+
+                st.session_state.chat_messages.append({"role": "assistant", "content": reply})
+
+    # ── Clear chat / Reset mission ──
+    col_clear1, col_clear2 = st.columns(2)
+    with col_clear1:
+        if st.button("🗑️ Clear Chat History", use_container_width=True):
+            st.session_state.chat_messages = []
+            st.rerun()
+    with col_clear2:
+        if st.button("🔄 Reset Mission", use_container_width=True):
+            st.session_state.active_mission = None
+            st.session_state.chat_messages = []
+            st.rerun()

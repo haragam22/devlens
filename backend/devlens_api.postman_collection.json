@@ -1,0 +1,483 @@
+{
+    "info": {
+        "_postman_id": "devlens-api-v1",
+        "name": "DevLens Backend API",
+        "description": "Complete API collection for the DevLens AI-powered codebase navigator. Covers all 13 endpoints across Phases 1-8.\n\nBase URL: http://localhost:8000\n\nTypical workflow:\n1. Gatekeeper → Check repo health\n2. Ingest → Clone + parse\n3. Status → Poll until complete\n4. Graph → Get dependency DAG\n5. Vectorize → Embed code\n6. Search/Explain/Intent → AI features\n7. Chatbot → AI pair programmer",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "variable": [
+        {
+            "key": "base_url",
+            "value": "http://localhost:8000",
+            "type": "string"
+        },
+        {
+            "key": "owner",
+            "value": "pallets",
+            "type": "string"
+        },
+        {
+            "key": "repo",
+            "value": "flask",
+            "type": "string"
+        }
+    ],
+    "item": [
+        {
+            "name": "Meta",
+            "item": [
+                {
+                    "name": "Health Check",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/health",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "health"
+                            ]
+                        },
+                        "description": "Verify the backend is running. Returns {status: 'ok', version: '0.1.0'}."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Phase 1: Repository",
+            "item": [
+                {
+                    "name": "Ingest Repository",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"github_url\": \"https://github.com/{{owner}}/{{repo}}\",\n  \"github_pat\": null\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/repository/ingest",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "repository",
+                                "ingest"
+                            ]
+                        },
+                        "description": "Shallow-clones a GitHub repo (depth=1), fetches metadata from the GitHub API, and kicks off background Tree-sitter parsing.\n\nRequest Body:\n- github_url (string, required): Full GitHub URL\n- github_pat (string, optional): GitHub PAT override\n\nResponse:\n- repo_id: \"owner/repo\"\n- metadata: {name, full_name, description, stars, forks, language, default_branch, topics, html_url}\n- clone_path: Server-side path\n- status: \"ingested\" or \"error\"\n- message: Error details if failed\n\nNote: After this call, poll /status until parsing completes before using /graph."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Parsing Status",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/repository/status/{{owner}}/{{repo}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "repository",
+                                "status",
+                                "{{owner}}",
+                                "{{repo}}"
+                            ]
+                        },
+                        "description": "Poll this after /ingest to check if background Tree-sitter parsing is done.\n\nResponse:\n- status: \"completed\" | \"parsing\" | \"not_found\"\n\nPoll every 1-2 seconds until you get \"completed\"."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Dependency Graph",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/repository/graph/{{owner}}/{{repo}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "repository",
+                                "graph",
+                                "{{owner}}",
+                                "{{repo}}"
+                            ]
+                        },
+                        "description": "Returns the Tree-sitter parsed dependency graph.\n\nResponse:\n- nodes: [{id, language, size_bytes, extracted_names}]\n- edges: [{source, target, edge_type}]\n- circular_deps: [[file1, file2, ...]]\n- skipped_files: [filenames]\n\n404 if repo not ingested or still parsing."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Phase 2: Intelligence",
+            "item": [
+                {
+                    "name": "Vectorize Repository",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"owner\": \"{{owner}}\",\n  \"repo\": \"{{repo}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/repository/vectorize",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "repository",
+                                "vectorize"
+                            ]
+                        },
+                        "description": "Chunks code by class/function, embeds with AWS Bedrock Titan v2, stores in ChromaDB.\n\nMust call /ingest first.\n\nResponse:\n- repo_id, total_files, total_chunks, embedded_chunks, skipped_chunks, status\n\nCan take 1-2 minutes for large repos. Set timeout to 300s."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Hybrid Search (Issue-to-Code)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"owner\": \"{{owner}}\",\n  \"repo\": \"{{repo}}\",\n  \"query\": \"How does authentication work?\",\n  \"top_k\": 10\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/search",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "search"
+                            ]
+                        },
+                        "description": "Hybrid search: dense vector (ChromaDB) + BM25 keyword re-ranking.\n\nMust call /vectorize first.\n\nRequest:\n- owner, repo (required)\n- query (required): Search text or issue description\n- top_k (optional, default 10): Max results\n\nResponse results:\n- file_path, chunk_type (class/function/module), language, chunk (code snippet), score (0-1)\n\nScoring: 0.7 × cosine_similarity + 0.3 × keyword_overlap"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Explain Code (Jargon Buster)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"content\": \"async def fetch_data(url):\\n    async with httpx.AsyncClient() as client:\\n        return await client.get(url)\",\n  \"language\": \"English\",\n  \"user_profile\": {\n    \"level\": \"student\",\n    \"language\": \"English\",\n    \"goal\": \"learning\"\n  }\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/explain",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "explain"
+                            ]
+                        },
+                        "description": "Sends code/text to Claude AI for student-friendly explanation + jargon breakdown.\n\nRequest:\n- content (required): Code snippet (max ~6000 chars)\n- language (optional, default English): Output language (Hindi, Hinglish, Tamil, etc.)\n- user_profile (optional): {level, language, goal} for persona-aware tone\n\nResponse:\n- explanation: Friendly 3-4 sentence summary\n- jargon_terms: [{term, technical_definition, student_analogy}]\n\nPersona levels:\n- student: Simple analogies, encouraging\n- junior: Clear, practical\n- senior: Concise, technical"
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Phase 3: Architectural Intent",
+            "item": [
+                {
+                    "name": "Get File Intent",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"owner\": \"{{owner}}\",\n  \"repo\": \"{{repo}}\",\n  \"file_path\": \"src/flask/app.py\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/intent",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "intent"
+                            ]
+                        },
+                        "description": "Fetches last ~50 commits for a file and asks Claude to summarize its architectural purpose.\n\nRequest:\n- owner, repo (required)\n- file_path (required): Path within the repo (e.g. 'src/auth/login.py')\n\nResponse:\n- intent_summary: AI-generated architectural analysis (markdown)\n- commits_analyzed: Number of commits analyzed\n\nRequires GitHub PAT or public repo."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Phase 5: Onboarding",
+            "item": [
+                {
+                    "name": "PR/Issue History (GraphQL)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/history/{{owner}}/{{repo}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "history",
+                                "{{owner}}",
+                                "{{repo}}"
+                            ]
+                        },
+                        "description": "Fetches last 50 merged PRs via GitHub GraphQL, including linked issues and changed files.\n\nResponse:\n- repo_id\n- pull_requests: [{title, author, url, merged_at, linked_issues: [{number, title, url}], changed_files: [paths]}]\n\nRequires GitHub PAT with GraphQL access."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Generate Setup Scripts",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/setup/{{owner}}/{{repo}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "setup",
+                                "{{owner}}",
+                                "{{repo}}"
+                            ]
+                        },
+                        "description": "Scans the ingested repo for config files and generates setup scripts.\n\nMust call /ingest first.\n\nResponse:\n- repo_id\n- bash_script: Copy-pasteable bash script\n- powershell_script: Copy-pasteable PowerShell script\n\nDetects: package.json, requirements.txt, Pipfile, pyproject.toml, Cargo.toml, go.mod, Dockerfile, docker-compose.yml\n\n404 if repo not ingested."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Phase 6: Issue Matcher",
+            "item": [
+                {
+                    "name": "Recommend Beginner Issues",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/issues/recommend/{{owner}}/{{repo}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "issues",
+                                "recommend",
+                                "{{owner}}",
+                                "{{repo}}"
+                            ]
+                        },
+                        "description": "Fetches issues labeled 'good first issue' and checks for linked PRs.\n\nResponse:\n- repo_id\n- recommended_issues: [{number, title, url, body_preview, in_progress (bool), active_prs (urls)}]\n\nFrontend tip: Show in_progress=true as '⚠️ In Progress' (yellow), false as '🟢 Available' (green)."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Phase 7-8: AI Pair Programmer",
+            "item": [
+                {
+                    "name": "Chatbot — New Mission (Flow 1)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"owner\": \"{{owner}}\",\n  \"repo\": \"{{repo}}\",\n  \"message\": \"Login returns 500 error when session cookie expires\",\n  \"issue_number\": 42,\n  \"user_profile\": {\n    \"level\": \"junior\",\n    \"language\": \"English\",\n    \"goal\": \"contributing\"\n  }\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/chatbot",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "chatbot"
+                            ]
+                        },
+                        "description": "Flow 1: Start a new mission. Set issue_number to trigger full investigation pipeline.\n\nPipeline: Detect Mode → Investigate (Graph-RAG) → Snipe Context → Generate Plan → Git Commands\n\nModes (auto-detected from text):\n- 🐛 Exterminator (bug, error, crash, fix)\n- 🏗️ Builder (add, feature, new, implement)\n- 🧹 Janitor (refactor, docs, clean, rename)\n\nResponse includes:\n- reply: Full formatted markdown response\n- mission_id: Store this for subsequent requests\n- mode: Detected mode\n- plan: Step-by-step checklist (markdown)\n- relevant_files: Files related to the issue\n- blast_radius: Files that depend on target files\n- git_commands: Ready-to-paste terminal commands"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Chatbot — Terminal Output (Flow 2)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"owner\": \"{{owner}}\",\n  \"repo\": \"{{repo}}\",\n  \"message\": \"Traceback (most recent call last):\\n  File 'app.py', line 42\\nModuleNotFoundError: No module named 'flask_session'\",\n  \"mission_id\": \"issue-42\",\n  \"current_step\": 2,\n  \"type\": \"terminal_output\",\n  \"user_profile\": {\n    \"level\": \"junior\",\n    \"language\": \"English\",\n    \"goal\": \"contributing\"\n  }\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/chatbot",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "chatbot"
+                            ]
+                        },
+                        "description": "Flow 2: Terminal output analysis during an active mission.\n\nSet type='terminal_output' + mission_id.\n\nThe agent determines whether the error was CAUSED by the last step or REVEALED a pre-existing issue, then suggests next steps.\n\nResponse:\n- reply: Analysis and suggested action\n- mission_id: Same as sent\n- mode: Current mission mode"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Chatbot — Follow-up Chat (Flow 3)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"owner\": \"{{owner}}\",\n  \"repo\": \"{{repo}}\",\n  \"message\": \"What does the verify_token function do exactly?\",\n  \"mission_id\": \"issue-42\",\n  \"user_profile\": {\n    \"level\": \"junior\",\n    \"language\": \"English\",\n    \"goal\": \"contributing\"\n  }\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/chatbot",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "chatbot"
+                            ]
+                        },
+                        "description": "Flow 3: General follow-up questions during or outside a mission.\n\nWith mission_id: Answers using the mission context (plan, relevant files).\nWithout mission_id: Simple AI chat about the repo.\n\nResponse:\n- reply: AI answer (markdown)\n- mission_id: Same if provided\n- mode: Current mission mode if applicable"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Chatbot — Simple Chat (No Mission)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"owner\": \"{{owner}}\",\n  \"repo\": \"{{repo}}\",\n  \"message\": \"What is Flask's application factory pattern?\",\n  \"user_profile\": {\n    \"level\": \"student\",\n    \"language\": \"Hinglish\",\n    \"goal\": \"learning\"\n  }\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/chatbot",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "chatbot"
+                            ]
+                        },
+                        "description": "Simple AI chat without an active mission.\n\nNo issue_number and no mission_id = general question answered by Claude.\nThe user_profile personalizes the response tone and language."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Phase 8: Personalization",
+            "item": [
+                {
+                    "name": "Gatekeeper (Repo Health Audit)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/gatekeeper/{{owner}}/{{repo}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "gatekeeper",
+                                "{{owner}}",
+                                "{{repo}}"
+                            ]
+                        },
+                        "description": "Pre-ingestion repo health audit. Call BEFORE /ingest to warn about dead/overwhelming repos.\n\nChecks:\n- Liveness: Last push date (>1yr = dead, >6mo = stale)\n- Competition: Open PR count (>50 = high)\n- Complexity: Dependency count from package.json/requirements.txt (>500 = expert)\n\nResponse:\n- repo_id, liveness (active/stale/dead), last_push, days_since_push\n- open_prs, competition (low/medium/high)\n- dependency_count, complexity (beginner/intermediate/expert)\n- verdict: Human-readable with emoji (✅/🟡/🔴)\n- warnings: Array of warning strings\n\nFrontend: Color code the verdict — green for ✅, yellow for 🟡, red for 🔴."
+                    },
+                    "response": []
+                }
+            ]
+        }
+    ]
+}
