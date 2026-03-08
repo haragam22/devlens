@@ -6,8 +6,8 @@ const ALLOWED_TRANSITIONS: Record<AppMode, AppMode[]> = {
     ingesting: ["feature-explorer", "cockpit", "landing"],
     "feature-explorer": ["cockpit", "landing", "ingesting"],
     cockpit: ["focus", "architect", "landing", "feature-explorer"],
-    architect: ["cockpit", "feature-explorer"],
-    focus: ["cockpit", "feature-explorer"]
+    architect: ["cockpit", "feature-explorer", "focus"],
+    focus: ["cockpit", "feature-explorer", "architect"]
 };
 
 export const StateMachine = {

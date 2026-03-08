@@ -27,7 +27,7 @@ export const CodeViewer = () => {
             </div>
 
             {/* Code Content */}
-            <div className="flex-1 overflow-auto p-4">
+            <div className="flex-1 overflow-auto p-4 pb-12">
                 <pre className="text-text/90 text-xs font-mono leading-relaxed whitespace-pre-wrap">
                     {focusFileContent.split('\n').map((line, i) => (
                         <div key={i} className="flex hover:bg-white/5 rounded px-1 -mx-1">

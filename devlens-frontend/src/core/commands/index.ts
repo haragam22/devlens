@@ -49,15 +49,20 @@ export const initCommands = () => {
         description: 'List all available commands',
         execute: ({ writeOutput }) => {
             writeOutput('Available commands:');
-            writeOutput('  help           - Show this help message');
-            writeOutput('  ingest <url>   - Ingest a GitHub repository');
-            writeOutput('  map            - View the molecular dependency graph');
-            writeOutput('  home           - Return to the Feature Explorer map');
-            writeOutput('  blast <file>   - Trigger blast animation on a file node');
-            writeOutput('  focus <file>   - Open code viewer for a file');
-            writeOutput('  intent <file>  - Show architectural intent from commits');
-            writeOutput('  explain <file> - Jargon buster: simplify code concepts');
-            writeOutput('  clear          - Clear terminal output');
+            writeOutput('  help              - Show this help message');
+            writeOutput('  ingest <url>      - Ingest a GitHub repository');
+            writeOutput('  gatecheck <url>   - Audit repo health before ingestion');
+            writeOutput('  map               - View the molecular dependency graph');
+            writeOutput('  home              - Return to the Feature Explorer map');
+            writeOutput('  blast <file>      - Trigger blast animation on a file node');
+            writeOutput('  focus <file>      - Open code viewer for a file');
+            writeOutput('  intent <file>     - Show architectural intent from commits');
+            writeOutput('  explain <file>    - Jargon buster: simplify code concepts');
+            writeOutput('  issues            - Find beginner-friendly issues');
+            writeOutput('  history           - View recent merged PRs (Institutional Memory)');
+            writeOutput('  setup             - Generate local setup commands for the repo');
+            writeOutput('  architect <issue> - Start an agentic mission to solve an issue');
+            writeOutput('  clear             - Clear terminal output');
         }
     });
 
@@ -130,6 +135,164 @@ export const initCommands = () => {
     });
 
     registerCommand({
+        name: 'gatecheck',
+        description: 'Audit repository feasibility before ingestion',
+        execute: async ({ args, writeOutput }) => {
+            if (args.length === 0) {
+                writeOutput('Usage: gatecheck <url>', '#EF4444');
+                return;
+            }
+
+            const url = args[0].replace(/^<|>$/g, '').trim();
+            const match = url.match(/github\.com\/([^/]+)\/([^/]+)/);
+            if (!match) {
+                writeOutput('Invalid GitHub URL format.', '#EF4444');
+                return;
+            }
+
+            const owner = match[1];
+            let repo = match[2];
+            if (repo.endsWith('.git')) repo = repo.slice(0, -4);
+
+            writeOutput(`Scanning repository health for ${owner}/${repo}...`);
+
+            try {
+                const data = await apiClient.getGatekeeperStatus(owner, repo);
+
+                // Print the results out
+                writeOutput('--- Gatekeeper Verdict ---', '#CBD5E1'); // light slate
+                writeOutput(`Repo: ${data.repo_id}`);
+                writeOutput(`Liveness: ${data.liveness} (Last push: ${data.days_since_push} days ago)`);
+                writeOutput(`Traffic: ${data.open_prs} open PRs (Competition: ${data.competition})`);
+                writeOutput(`Complexity: ${data.dependency_count} dependencies (${data.complexity})`);
+
+                let verdictColor = '#10B981'; // green
+                if (data.verdict.includes('Moderate') || data.verdict.includes('Mostly Friendly')) verdictColor = '#F59E0B'; // yellow
+                if (data.verdict.includes('Not Recommended')) verdictColor = '#EF4444'; // red
+
+                writeOutput(`Verdict: ${data.verdict}`, verdictColor);
+
+                if (data.warnings && data.warnings.length > 0) {
+                    data.warnings.forEach((w: string) => writeOutput(w));
+                }
+            } catch (e: any) {
+                writeOutput(`Gatecheck failed: ${e.message}`, '#EF4444');
+            }
+        }
+    });
+
+    registerCommand({
+        name: 'setup',
+        description: 'Generate local setup commands for the ingested repository',
+        execute: async ({ writeOutput }) => {
+            const store = useAppStore.getState();
+            if (!store.repoUrl) {
+                writeOutput('No repository ingested. Please run ingest <url> first.', '#EF4444');
+                return;
+            }
+
+            const ids = getOwnerRepo();
+            if (!ids) {
+                writeOutput('Invalid repository loaded.', '#EF4444');
+                return;
+            }
+
+            writeOutput('🚀 Mission Start: Paste this into your terminal', '#10B981');
+            writeOutput(`git clone https://github.com/${ids.owner}/${ids.repo}.git`);
+            writeOutput(`cd ${ids.repo}`);
+
+            // Basic heuristic for package manager
+            writeOutput('npm install # (Assuming Node.js project. Use pip for Python, cargo for Rust)');
+            writeOutput('npm run dev # Or equivalent start command');
+        }
+    });
+
+    registerCommand({
+        name: 'issues',
+        description: 'Find "Good First Issues" recommended for your skill level',
+        execute: async ({ writeOutput }) => {
+            const store = useAppStore.getState();
+            if (!store.repoUrl) {
+                writeOutput('No repository ingested. Run ingest <url> first.', '#EF4444');
+                return;
+            }
+            const ids = getOwnerRepo();
+            if (!ids) {
+                writeOutput('Invalid repository loaded.', '#EF4444');
+                return;
+            }
+
+            writeOutput('Scanning GitHub for Good First Issues...', '#06B6D4');
+            try {
+                const data = await apiClient.getRecommendedIssues(ids.owner, ids.repo);
+                if (!data.recommended_issues || data.recommended_issues.length === 0) {
+                    writeOutput('No beginner-friendly issues found right now.', '#EAB308');
+                    return;
+                }
+                writeOutput(`Found ${data.recommended_issues.length} beginner-friendly issue(s):`);
+                data.recommended_issues.forEach((issue: any) => {
+                    const statusTag = issue.in_progress ? ' ⚠️ IN PROGRESS' : ' ✅ OPEN';
+                    writeOutput(`\n[Issue #${issue.number}] ${issue.title}${statusTag}`, issue.in_progress ? '#EAB308' : '#10B981');
+                    writeOutput(`  URL: ${issue.url}`);
+                    if (issue.body_preview) {
+                        writeOutput(`  Preview: ${issue.body_preview}`);
+                    }
+                    if (issue.active_prs && issue.active_prs.length > 0) {
+                        issue.active_prs.forEach((prUrl: string) => writeOutput(`  Active PR: ${prUrl}`, '#EAB308'));
+                    }
+                });
+            } catch (e: any) {
+                writeOutput(`Failed to fetch issues: ${e.message}`, '#EF4444');
+            }
+        }
+    });
+
+    registerCommand({
+        name: 'history',
+        description: 'View the 5 most recent merged Pull Requests (Institutional Memory)',
+        execute: async ({ writeOutput }) => {
+            const store = useAppStore.getState();
+            if (!store.repoUrl) {
+                writeOutput('No repository ingested. Run ingest <url> first.', '#EF4444');
+                return;
+            }
+            const ids = getOwnerRepo();
+            if (!ids) {
+                writeOutput('Invalid repository loaded.', '#EF4444');
+                return;
+            }
+
+            writeOutput('Fetching repository PR history (Institutional Memory)...', '#06B6D4');
+            try {
+                const data = await apiClient.getPRHistory(ids.owner, ids.repo);
+                if (!data.pull_requests || data.pull_requests.length === 0) {
+                    writeOutput('No merged PR history found.', '#EAB308');
+                    return;
+                }
+                // Show up to 5 most recent merged PRs
+                writeOutput(`\nShowing ${Math.min(5, data.pull_requests.length)} of ${data.pull_requests.length} merged PRs:`);
+                data.pull_requests.slice(0, 5).forEach((pr: any) => {
+                    const mergedDate = pr.merged_at ? new Date(pr.merged_at).toLocaleDateString() : 'Unknown';
+                    writeOutput(`\n${pr.title}`, '#8B5CF6');
+                    writeOutput(`  Author: ${pr.author || 'Unknown'} | Merged: ${mergedDate}`);
+                    writeOutput(`  URL: ${pr.url}`);
+                    if (pr.linked_issues && pr.linked_issues.length > 0) {
+                        const issueList = pr.linked_issues.map((i: any) => `#${i.number}`).join(', ');
+                        writeOutput(`  Closes: ${issueList}`, '#10B981');
+                    }
+                    if (pr.changed_files && pr.changed_files.length > 0) {
+                        const fileList = pr.changed_files.slice(0, 5).join(', ');
+                        const extra = pr.changed_files.length > 5 ? ` (+${pr.changed_files.length - 5} more)` : '';
+                        writeOutput(`  Files: ${fileList}${extra}`);
+                    }
+                });
+            } catch (e: any) {
+                writeOutput(`Failed to fetch history: ${e.message}`, '#EF4444');
+            }
+        }
+    });
+
+    registerCommand({
         name: 'ingest',
         description: 'Ingest a repository',
         execute: async ({ args, writeOutput }) => {
@@ -153,6 +316,8 @@ export const initCommands = () => {
                     const owner = match[1];
                     let repo = match[2];
                     if (repo.endsWith('.git')) repo = repo.slice(0, -4);
+
+                    store.setRepoConfig(url, owner, repo);
 
                     let isParsing = true;
                     while (isParsing) {
@@ -280,6 +445,7 @@ export const initCommands = () => {
                     owner: ids.owner,
                     repo: ids.repo,
                     file_path: match.id,
+                    user_profile: store.userProfile,
                 });
                 store.setIntentLoading(false);
                 store.setIntentData(data);
@@ -342,7 +508,8 @@ export const initCommands = () => {
                 const data = await apiClient.post('/explain', {
                     content: content.slice(0, 6000),
                     language: store.userProfile.language === 'hinglish' ? 'Hinglish' :
-                        store.userProfile.language === 'hindi' ? 'Hindi' : 'English'
+                        store.userProfile.language === 'hindi' ? 'Hindi' : 'English',
+                    user_profile: store.userProfile,
                 });
                 store.setExplainLoading(false);
                 store.setExplainData(data);
@@ -351,6 +518,78 @@ export const initCommands = () => {
                 store.setExplainLoading(false);
                 store.setExplainError(e.message || 'Jargon analysis failed.');
                 writeOutput(`Explain failed: ${e.message}`, '#EF4444');
+            }
+        }
+    });
+
+    registerCommand({
+        name: 'architect',
+        description: 'Start an agentic mission to solve a specific GitHub issue',
+        execute: async ({ args, writeOutput }) => {
+            if (args.length === 0) {
+                writeOutput('Usage: architect <issue_number>');
+                return;
+            }
+            const issueNumber = parseInt(args[0], 10);
+            if (isNaN(issueNumber)) {
+                writeOutput('Issue number must be an integer.', '#EF4444');
+                return;
+            }
+
+            const store = useAppStore.getState();
+            const ids = getOwnerRepo();
+            if (!ids) {
+                writeOutput('No repository ingested. Run ingest <url> first.', '#EF4444');
+                return;
+            }
+
+            // Immediately switch to architect mode and show loading
+            StateMachine.transition('architect');
+            store.setMissionState({
+                active: true,
+                issueNumber,
+                mode: null,
+                plan: null,
+                gitCommands: null,
+                relevantFiles: [],
+                blastRadius: [],
+                chatHistory: [{ role: 'system', content: `Starting mission for Issue #${issueNumber}...` }]
+            });
+
+            writeOutput(`Consulting DevLens Architect for Issue #${issueNumber}...`);
+
+            try {
+                const response = await apiClient.startMission(
+                    ids.owner,
+                    ids.repo,
+                    issueNumber,
+                    `Plan a fix for issue ${issueNumber}`,
+                    store.userProfile
+                );
+
+                // Update the mission state with the AI's plan
+                store.setMissionState({
+                    missionId: response.mission_id,
+                    mode: response.mode as any,
+                    plan: response.plan,
+                    gitCommands: response.git_commands,
+                    relevantFiles: response.relevant_files || [],
+                    blastRadius: response.blast_radius || [],
+                    chatHistory: [
+                        ...useAppStore.getState().missionState.chatHistory,
+                        { role: 'assistant', content: response.reply || 'Mission planned successfully.' }
+                    ]
+                });
+
+                writeOutput('Mission ready! Architect Panel opened.');
+            } catch (e: any) {
+                store.setMissionState({
+                    chatHistory: [
+                        ...store.missionState.chatHistory,
+                        { role: 'system', content: `[Error] ${e.message || 'Failed to start mission'}` }
+                    ]
+                });
+                writeOutput(`Architect failed: ${e.message}`, '#EF4444');
             }
         }
     });

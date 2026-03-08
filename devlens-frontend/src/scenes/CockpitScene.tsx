@@ -7,6 +7,7 @@ import { ExplainPanel } from '../components/Panels/ExplainPanel';
 import { StateMachine } from '../core/StateMachine';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ANIMATION } from '../core/AnimationTimings';
+import { ArchitectPanel } from '../components/Panels/ArchitectPanel';
 
 export const CockpitScene = () => {
     const { mode, selectedFile, setBlastTarget, setSelectedFile, setFocusFileContent } = useAppStore();
@@ -14,7 +15,11 @@ export const CockpitScene = () => {
     // Hide cockpit entirely during landing or ingesting
     if (mode === 'landing' || mode === 'ingesting') return null;
 
+    // In focus mode, graph shifts left to make room for CodeViewer
+    // In architect mode, graph shifts left to make room for ArchitectPanel
     const isFocus = mode === 'focus';
+    const isArchitect = mode === 'architect';
+
     const isFeatureExplorer = mode === 'feature-explorer';
 
     const handleCloseMap = () => {
@@ -31,9 +36,9 @@ export const CockpitScene = () => {
             transition={{ duration: ANIMATION.NORMAL }}
             className={`absolute inset-0 w-full h-full overflow-hidden ${isFeatureExplorer ? 'pointer-events-none' : 'pointer-events-auto'}`}
         >
-            {/* Graph — 70% in focus, 100% otherwise */}
+            {/* Graph — 70% in focus, calc in architect, 100% otherwise */}
             <motion.div
-                animate={{ width: isFocus ? '70%' : '100%' }}
+                animate={{ width: isFocus ? '70%' : isArchitect ? 'calc(100% - 450px)' : '100%' }}
                 transition={{ duration: ANIMATION.NORMAL, ease: ANIMATION.EASE as any }}
                 className="absolute top-0 left-0 h-full bg-black"
             >
@@ -70,7 +75,7 @@ export const CockpitScene = () => {
               ALWAYS anchored to the LEFT side to avoid overlap with SidePanel on the right.
             */}
             <div
-                className="absolute top-20 left-2 z-[80] flex flex-col gap-3 pointer-events-auto overflow-y-auto"
+                className="absolute top-16 left-6 z-[80] flex flex-col gap-3 pointer-events-auto overflow-y-auto"
                 style={{ width: 360, maxHeight: 'calc(100vh - 96px)' }}
             >
                 <AnimatePresence mode="popLayout">
@@ -80,6 +85,11 @@ export const CockpitScene = () => {
                     <ExplainPanel />
                 </AnimatePresence>
             </div>
+
+            {/* Architect Panel - displays Agent checklist and chat */}
+            <AnimatePresence>
+                {isArchitect && <ArchitectPanel />}
+            </AnimatePresence>
         </motion.div>
     );
 };

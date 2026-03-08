@@ -13,22 +13,18 @@ export const FeatureExplanationCard = ({ feature, x, y }: Props) => {
 
     // Smart positioning: flip card ABOVE the node if node is in the bottom half
     const isBottom = y > 50;
-    const cardTop = isBottom
-        ? `calc(50% + ${y - 190}px)`   // render above the node
-        : `calc(50% + ${y + 40}px)`;    // render below the node
-
-    // Shift left/right to stay on-screen
-    const cardLeft = x > 150 ? x - 180 : x < -150 ? x + 80 : x;
+    const preferredTop = isBottom ? y - 190 : y + 60;
+    const preferredLeft = x;
 
     return (
         <motion.div
-            initial={{ opacity: 0, y: isBottom ? -10 : 10, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.15 } }}
-            className="absolute z-[80] flex bg-slate-900/95 border border-slate-600 rounded-xl p-5 shadow-2xl backdrop-blur-xl"
+            className="fixed z-[80] flex bg-slate-900/95 border border-slate-600 rounded-xl p-5 shadow-2xl backdrop-blur-xl"
             style={{
-                left: `calc(50% + ${cardLeft}px)`,
-                top: cardTop,
+                left: `clamp(240px, calc(50% + ${preferredLeft}px), calc(100vw - 240px))`,
+                top: `clamp(80px, calc(50% + ${preferredTop}px), calc(100vh - 200px))`,
                 width: '440px',
                 transform: 'translateX(-50%)',
                 pointerEvents: 'none',

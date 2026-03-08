@@ -229,6 +229,7 @@ class IntentRequest(BaseModel):
     owner: str
     repo: str
     file_path: str
+    user_profile: dict | None = None
 
 
 class IntentResponse(BaseModel):
@@ -298,13 +299,38 @@ async def get_intent(request: IntentRequest) -> IntentResponse:
     compiled_history = "\n".join(history_text)
     user_msg = f"File: {request.file_path}\nHistory:\n{compiled_history}"
     
+    system_prompt = _INTENT_SYSTEM
+    
+    # Phase 8: Inject persona modifier if user_profile provided
+    if request.user_profile:
+        from app.services.persona import UserProfile, build_persona_modifier
+        try:
+            profile = UserProfile(**request.user_profile)
+            modifier = build_persona_modifier(profile)
+            if modifier:
+                system_prompt += f"\n\nUSER PERSONA CONTEXT:\n{modifier}"
+                
+            # Handle language override if necessary
+            language = request.user_profile.get("language", "english").lower()
+            target_lang = "English"
+            if language == "hinglish":
+                target_lang = "Hinglish (Roman script mixed with English technical terms)"
+            elif language == "hindi":
+                target_lang = "Hindi"
+                
+            if target_lang != "English":
+                system_prompt += f"\n\nCRITICAL LINGUISTIC INSTRUCTION: You MUST output your analysis in the following language: {target_lang}."
+                
+        except Exception as e:
+            logger.warning(f"Failed to apply user persona: {e}")
+    
     try:
-        summary = await call_claude(_INTENT_SYSTEM, user_msg, max_tokens=1000)
+        raw_response = await call_claude(system_prompt, user_msg, max_tokens=1000)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Claude call failed: {exc}")
         
     return IntentResponse(
-        intent_summary=summary.strip(),
+        intent_summary=raw_response.strip(),
         commits_analyzed=len(commits_data)
     )
 
