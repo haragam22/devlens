@@ -38,4 +38,49 @@ export const apiClient = {
         }
         return res.text();
     },
+
+    // --- Phase 6: Good First Issues & PR History ---
+    getRecommendedIssues: async (owner: string, repo: string) => {
+        return apiClient.get(`/issues/recommend/${owner}/${repo}`);
+    },
+
+    getPRHistory: async (owner: string, repo: string) => {
+        return apiClient.get(`/history/${owner}/${repo}`);
+    },
+
+    // --- Phase 7: Gatekeeper ---
+    getGatekeeperStatus: async (owner: string, repo: string) => {
+        return apiClient.get(`/gatekeeper/${owner}/${repo}`);
+    },
+
+    // --- Phase 7/8: Architect Chatbot ---
+    startMission: async (owner: string, repo: string, issueNumber: number, message: string, userProfile: any) => {
+        return apiClient.post('/chatbot', {
+            owner,
+            repo,
+            issue_number: issueNumber,
+            message,
+            user_profile: userProfile
+        });
+    },
+
+    sendMissionUpdate: async (
+        owner: string,
+        repo: string,
+        message: string,
+        missionId: string,
+        currentStep: number | null,
+        type: 'user_chat' | 'terminal_output',
+        userProfile: any
+    ) => {
+        return apiClient.post('/chatbot', {
+            owner,
+            repo,
+            message,
+            mission_id: missionId,
+            current_step: currentStep,
+            type,
+            user_profile: userProfile
+        });
+    }
 };

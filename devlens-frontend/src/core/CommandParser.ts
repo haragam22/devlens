@@ -9,14 +9,14 @@ export const executeCommand = async (
     const trimmed = input.trim();
     if (!trimmed) return;
 
-    store.addCliHistory(`> ${trimmed}`);
+    store.addToHistory(`> ${trimmed}`);
     const parts = trimmed.split(/\s+/);
     const cmdName = parts[0];
     const args = parts.slice(1);
     const command = CommandRegistry[cmdName];
 
     if (!command) {
-        store.addCliHistory(`Command not recognized. Type 'help'.`);
+        store.addToHistory(`Command not recognized. Type 'help'.`);
         writeOutput(`Command not recognized. Type 'help'.`, '#EF4444');
         return;
     }
@@ -25,7 +25,7 @@ export const executeCommand = async (
         await command.execute({ args, raw: trimmed, writeOutput });
     } catch (error: any) {
         const errorMsg = error.message || 'Execution failed';
-        store.addCliHistory(`[Error] ${errorMsg}`);
+        store.addToHistory(`[Error] ${errorMsg}`);
         writeOutput(errorMsg, '#EF4444');
     }
 };

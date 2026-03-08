@@ -19,6 +19,11 @@ export const FeatureExplorerScene = () => {
                 <p className="text-white/25 text-[10px] tracking-[0.3em] uppercase mt-0.5 font-mono">
                     Feature Overview
                 </p>
+                <p className="text-white/30 text-xs mt-3 font-mono leading-relaxed max-w-[320px]">
+                    Hover over any feature to learn more.
+                    <br />
+                    <span className="text-cyan-400/50">Click the terminal button →</span> to start exploring a repository.
+                </p>
             </div>
 
             {/* Tree — inset top by 64px to clear heading */}
