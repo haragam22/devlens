@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 # Model IDs
 TITAN_EMBED_MODEL = "amazon.titan-embed-text-v2:0"
-CHAT_MODEL = "nvidia/nemotron-3-nano-30b-a3b:free"
+CHAT_MODEL = "anthropic/claude-3.7-sonnet"
 
 
 @lru_cache()
