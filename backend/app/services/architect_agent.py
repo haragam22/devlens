@@ -455,6 +455,26 @@ async def run_full_investigation(
     Investigate → Snipe → Plan → Command
     Returns the complete mission payload.
     """
+    # 0. Fetch real issue details from GitHub if issue_number is given
+    if issue_number is not None:
+        from app.services.github_issues import fetch_issue_by_number
+        try:
+            gh_issue = await fetch_issue_by_number(owner, repo, issue_number)
+            # Build a rich issue_text from the real data
+            parts = [f"# Issue #{gh_issue['number']}: {gh_issue['title']}"]
+            if gh_issue.get("labels"):
+                parts.append(f"Labels: {', '.join(gh_issue['labels'])}")
+            if gh_issue.get("body"):
+                parts.append(f"\n{gh_issue['body'][:4000]}")
+            issue_text = "\n".join(parts)
+            logger.info("Fetched GitHub issue #%d: %s", issue_number, gh_issue["title"])
+        except Exception as exc:
+            logger.warning(
+                "Could not fetch issue #%s from GitHub: %s — falling back to user message",
+                issue_number, exc,
+            )
+            # Keep the original issue_text from the request
+
     # 1. Detect mission mode
     mode = detect_mode(issue_text)
     logger.info("Architect mode: %s for issue #%s", mode, issue_number)

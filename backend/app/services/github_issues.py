@@ -13,6 +13,55 @@ from app.config import get_settings
 
 logger = logging.getLogger(__name__)
 
+
+# ── Fetch a single issue by number (REST API) ─────────────────────────────
+
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=2, max=10),
+    reraise=True,
+)
+async def fetch_issue_by_number(
+    owner: str, repo: str, issue_number: int
+) -> Dict[str, Any]:
+    """
+    Fetch a single GitHub issue by its number using the REST API.
+    Returns { number, title, body, labels, state, url }.
+    Raises on HTTP errors (404 if issue doesn't exist, etc.).
+    """
+    settings = get_settings()
+
+    headers: Dict[str, str] = {
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+        "User-Agent": "DevLens-REST-Client",
+    }
+    if settings.github_pat:
+        headers["Authorization"] = f"Bearer {settings.github_pat}"
+
+    async with httpx.AsyncClient(timeout=15.0) as client:
+        resp = await client.get(
+            f"https://api.github.com/repos/{owner}/{repo}/issues/{issue_number}",
+            headers=headers,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+
+    labels = [
+        lbl["name"] if isinstance(lbl, dict) else str(lbl)
+        for lbl in data.get("labels", [])
+    ]
+
+    return {
+        "number": data.get("number", issue_number),
+        "title": data.get("title", ""),
+        "body": data.get("body", "") or "",
+        "labels": labels,
+        "state": data.get("state", "open"),
+        "url": data.get("html_url", ""),
+    }
+
+
 # Single-shot GraphQL to get open beginner issues and their cross-referenced Pull Requests
 GRAPHQL_ISSUES_QUERY = """
 query GetBeginnerIssues($owner: String!, $repo: String!) {

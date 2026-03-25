@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>DevLens — Technical Pitch Script (GfG Edition)</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=IBM+Plex+Mono:wght@400;600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --ink: #1a1a2e;
+    --paper: #f6f1e9;
+    --paper2: #ede7d9;
+    --accent: #c1440e;
+    --green: #1a6b3c;
+    --blue: #1a3a6b;
+    --gold: #b8860b;
+    --muted: #6b6558;
+    --border: #d4ccbb;
+    --tech-bg: #101828;
+    --tech-green: #6ee7b7;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--paper); color: var(--ink); font-family: 'DM Sans', sans-serif; line-height: 1.7; }
+  .topbar {
+    background: var(--ink); color: var(--paper);
+    padding: 13px 40px; display: flex; align-items: center;
+    justify-content: space-between; position: sticky; top: 0; z-index: 100;
+    font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: .08em;
+  }
+  .print-btn {
+    background: var(--accent); border: none; color: white;
+    padding: 6px 18px; border-radius: 4px; font-size: 12px;
+    cursor: pointer; font-family: 'DM Sans', sans-serif; font-weight: 600;
+  }
+  .page { max-width: 820px; margin: 0 auto; padding: 52px 40px 100px; }
+  .hero { margin-bottom: 48px; padding-bottom: 36px; border-bottom: 2.5px solid var(--ink); }
+  .eyebrow { font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
+  .hero h1 { font-family: 'Playfair Display', serif; font-size: clamp(44px, 7vw, 80px); font-weight: 900; line-height: 1.0; margin-bottom: 14px; }
+  .hero-sub { font-size: 17px; color: var(--muted); max-width: 560px; }
+  .hero-meta { margin-top: 20px; display: flex; gap: 20px; flex-wrap: wrap; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--muted); }
+  .instructions { background: #fff8e6; border: 1px solid #f0d878; border-left: 4px solid var(--gold); border-radius: 8px; padding: 16px 22px; margin-bottom: 48px; font-size: 14px; line-height: 1.65; }
+  .instructions strong { color: var(--gold); }
+  .timing { display: flex; border-radius: 6px; overflow: hidden; border: 1px solid var(--border); height: 40px; margin-bottom: 44px; }
+  .timing-seg { display: flex; align-items: center; justify-content: center; font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: white; font-weight: 600; letter-spacing: .04em; text-align: center; padding: 0 4px; }
+  .section { margin-bottom: 52px; }
+  .section-head { display: flex; align-items: baseline; gap: 14px; margin-bottom: 22px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+  .section-num { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--muted); }
+  .section-title { font-family: 'Playfair Display', serif; font-size: 24px; font-weight: 700; }
+  .duration { margin-left: auto; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: white; background: var(--accent); padding: 3px 10px; border-radius: 3px; white-space: nowrap; }
+  .duration.blue { background: var(--blue); }
+  .stage { border-left: 3px solid var(--green); padding: 8px 16px; margin-bottom: 14px; font-size: 13px; color: var(--green); font-style: italic; font-weight: 600; }
+  .spoken { background: white; border: 1px solid var(--border); border-radius: 10px; padding: 22px 28px; margin-bottom: 16px; }
+  .beat-label { display: inline-block; margin-bottom: 12px; font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: .15em; text-transform: uppercase; color: var(--muted); background: var(--paper2); padding: 3px 10px; border-radius: 12px; }
+  .spoken p { font-size: 17px; line-height: 1.8; color: #1e1e30; }
+  .spoken p + p { margin-top: 12px; }
+  .spoken em { font-style: normal; color: var(--accent); font-weight: 700; }
+  .spoken strong { color: var(--ink); font-weight: 700; }
+  .note { margin-top: 12px; padding: 10px 16px; background: var(--paper2); border-radius: 6px; font-size: 13px; color: var(--muted); font-style: italic; }
+  .analogy { background: #eef7f2; border: 1px solid #bddcca; border-left: 4px solid var(--green); border-radius: 8px; padding: 18px 22px; margin-bottom: 16px; }
+  .analogy-label { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: .15em; color: var(--green); margin-bottom: 8px; font-weight: 600; }
+  .analogy p { font-size: 15px; color: #1a3a28; line-height: 1.65; }
+  .analogy p + p { margin-top: 10px; }
+  .tech-block { background: var(--tech-bg); border-radius: 12px; padding: 26px 30px; margin-bottom: 14px; }
+  .tech-label { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: .2em; color: var(--tech-green); margin-bottom: 16px; font-weight: 600; display: block; }
+  .tech-block p { font-size: 16px; line-height: 1.75; color: #c8d0dc; }
+  .tech-block p + p { margin-top: 10px; }
+  .tech-block em { font-style: normal; color: var(--tech-green); font-weight: 600; }
+  .tech-block strong { color: white; }
+  .qa-item { background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.09); border-radius: 8px; padding: 18px 22px; margin-bottom: 12px; margin-top: 12px; }
+  .qa-q { font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #fde68a; margin-bottom: 10px; line-height: 1.5; }
+  .qa-a { font-size: 15px; color: #a8bcd0; line-height: 1.65; }
+  .qa-a em { font-style: normal; color: var(--tech-green); font-weight: 600; }
+  .qa-a strong { color: white; }
+  .closing { background: var(--ink); border-radius: 14px; padding: 40px; text-align: center; color: white; margin-top: 16px; }
+  .closing h2 { font-family: 'Playfair Display', serif; font-size: 28px; font-weight: 900; margin-bottom: 14px; color: white; }
+  .closing p { font-size: 16px; color: #8898b8; line-height: 1.7; }
+  .closing .final-line { font-size: 22px; font-weight: 700; color: white; margin-top: 20px; line-height: 1.4; font-style: italic; font-family: 'Playfair Display', serif; }
+  .closing .after { margin-top: 14px; font-size: 14px; color: #6070a0; }
+  .divider { display: flex; align-items: center; gap: 16px; margin: 44px 0; font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: .12em; color: var(--muted); text-transform: uppercase; }
+  .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  @media print { .topbar, .instructions { display: none; } body { background: white; } .section { page-break-inside: avoid; } }
+</style>
+</head>
+<body>
+ 
+<div class="topbar">
+  <span>DEVLENS — SPOKEN PITCH SCRIPT (TECH AUDIENCE) · TEAM DABBA SLAYERS</span>
+  <button class="print-btn" onclick="window.print()">⎙ Print / Save PDF</button>
+</div>
+ 
+<div class="page">
+ 
+  <div class="hero">
+    <div class="eyebrow">Hackathon Pitch — Developer/Tech Audience</div>
+    <h1>DevLens<br>Pitch Script</h1>
+    <p class="hero-sub">Fast-paced, technical, and focused on onboarding latency. Assumes the audience understands Git, codebases, and the pain of legacy code.</p>
+    <div class="hero-meta">
+      <span>👥 Team: DABBA SLAYERS</span>
+      <span>🧑‍💻 Haragam Deep Singh</span>
+      <span>⏱ ~6 minutes total</span>
+      <span>🌐 Live: 44.202.1.36</span>
+    </div>
+  </div>
+ 
+  <div class="instructions">
+    <strong>How to use this:</strong> Every white box = what you say out loud. Green lines = stage directions. Dark boxes = technical Q&A. This version strips out the "what is an issue" fluff and focuses heavily on <em>Architecture, AST parsing, and Blast Radius</em>. Talk to the judges like peer engineers.
+  </div>
+ 
+  <div class="timing">
+    <div class="timing-seg" style="flex:1;background:#c1440e;">Hook 30s</div>
+    <div class="timing-seg" style="flex:1.2;background:#9a2d08;">Problem 60s</div>
+    <div class="timing-seg" style="flex:1.3;background:#1a6b3c;">Solution 45s</div>
+    <div class="timing-seg" style="flex:2.5;background:#1a3a6b;">Features 2min</div>
+    <div class="timing-seg" style="flex:1;background:#3a2060;">Tech 45s</div>
+    <div class="timing-seg" style="flex:0.8;background:#5a3808;">Close 30s</div>
+  </div>
+ 
+ 
+  <div class="section">
+    <div class="section-head">
+      <span class="section-num">01</span>
+      <span class="section-title">The Hook</span>
+      <span class="duration">30 seconds</span>
+    </div>
+    <div class="stage">🎭 Look directly at the judges. Establish immediate peer-level credibility.</div>
+    <div class="spoken">
+      <div class="beat-label">Opening</div>
+      <p>We're in the GeeksforGeeks office, so I know I'm talking to engineers. You all know how to write code. But let me ask you about the hardest part of the job.</p>
+      <p>Imagine you just cloned a mature, massive repository. Three thousand files. Five years of legacy code. Zero documentation. Your task is to fix a single bug in the auth service.</p>
+      <p>You have the coding skills, but you don't have the <em>context</em>. You are staring at a massive folder structure, terrified that changing a single variable is going to take down production.</p>
+    </div>
+  </div>
+ 
+ 
+  <div class="section">
+    <div class="section-head">
+      <span class="section-num">02</span>
+      <span class="section-title">The Problem — Context Paralysis</span>
+      <span class="duration">45 seconds</span>
+    </div>
+    <div class="stage">🎭 Emphasize the exact feeling of fear developers get when navigating a new codebase.</div>
+    <div class="spoken">
+      <div class="beat-label">The Bottleneck</div>
+      <p>We call this <strong>"Context Paralysis."</strong></p>
+      <p>India graduates over a million engineers a year. They want to contribute to open-source, or they get hired as junior devs. But the bottleneck isn't their ability to write Python or React. The bottleneck is <em>onboarding latency</em>.</p>
+      <p>They spend two weeks just trying to build an architectural map in their heads. They scroll through endless files. They blindly `grep` for variable names. And worst of all, they don't know the <em>history</em> of the codebase, so they accidentally rewrite code that was put there for a specific edge case three years ago.</p>
+      <p>The barrier to entry isn't code. It's architecture.</p>
+    </div>
+  </div>
+ 
+  <div class="divider">the solution</div>
+ 
+ 
+  <div class="section">
+    <div class="section-head">
+      <span class="section-num">03</span>
+      <span class="section-title">What DevLens Is</span>
+      <span class="duration">45 seconds</span>
+    </div>
+    <div class="stage">✨ Pivot to the tech. Say this with complete confidence.</div>
+    <div class="spoken">
+      <div class="beat-label">The pitch</div>
+      <p>To solve this, we built <em>DevLens.</em></p>
+      <p>DevLens is an AI-powered onboarding navigator. It doesn't write your code for you — it builds your <strong>architectural intuition</strong>.</p>
+      <p>You give it a GitHub URL. In under 60 seconds, our backend clones the repo, parses the complete Abstract Syntax Tree, generates vector embeddings for every function, and renders a fully interactive, deterministic 3D map of the entire architecture.</p>
+      <p>It acts as a digital Senior Architect. It tells you exactly where to look, why the code was written that way, and what you are about to break.</p>
+    </div>
+  </div>
+ 
+ 
+  <div class="section">
+    <div class="section-head">
+      <span class="section-num">04</span>
+      <span class="section-title">The Engineering Features</span>
+      <span class="duration">2 minutes</span>
+    </div>
+    <div class="stage">🖥️ If you can show 44.202.1.36 on screen — do it here. Point at things as you talk. Frame these as workflow upgrades.</div>
+ 
+    <div class="spoken">
+      <div class="beat-label">Feature 1 — Deterministic Dependency Mapping</div>
+      <p>The first thing you see is the <strong>Molecular Map.</strong></p>
+      <p>Unlike standard RAG apps that just dump text into an LLM and pray it doesn't hallucinate, our map is mathematically verified. We use <em>Tree-sitter</em> to parse the AST and build a concrete node-and-edge graph of imports and classes. You visually see how the entire backend couples with the frontend.</p>
+    </div>
+ 
+    <div class="spoken">
+      <div class="beat-label">Feature 2 — Semantic Issue Mapping</div>
+      <p>Say you grab a GitHub issue: "Search crashes on special characters."</p>
+      <p>Paste that into DevLens. We run a hybrid vector and BM25 search against the chunked codebase. It skips the manual `grep` and immediately highlights the exact file and function you need to fix.</p>
+    </div>
+ 
+    <div class="spoken">
+      <div class="beat-label">Feature 3 — Blast Radius (The Killer Feature)</div>
+      <p>This is the feature every developer wishes they had. Before you touch that auth file, DevLens runs a graph query and highlights your <strong>Blast Radius</strong>.</p>
+      <p>It explicitly warns you: <em>"If you modify this token validator, you will break these three downstream services."</em> It protects junior developers from taking down `main`.</p>
+    </div>
+ 
+    <div class="spoken">
+      <div class="beat-label">Feature 4 — Institutional Memory (RAG on PRs)</div>
+      <p>Why was a weird block of code written? DevLens queries the GitHub GraphQL API, pulls the last 50 merged Pull Requests and their code-diffs, and maps them to the AST.</p>
+      <p>It tells you: <em>"This messy code was added in PR #402 to fix a race condition. Do not refactor it out."</em> We give day-one developers the institutional memory of a senior engineer.</p>
+    </div>
+ 
+    <div class="spoken">
+      <div class="beat-label">Feature 5 — The Indic Bridge (Built for Bharat)</div>
+      <p>Finally, we have to talk about accessibility. For a student in a Tier-2 or 3 college, reading a massive `CONTRIBUTING.md` full of jargon like "idempotent eventually consistent APIs" is demoralising.</p>
+      <p>Toggle "Junior Mode" in DevLens. It passes the dense documentation through OpenRouter, simplifies the tone, and translates it into regional languages.</p>
+      <p>That sentence becomes: <strong>"Yeh service ek traffic cop jaisi hai. Agar same request baar baar aaye, toh woh duplicate kaam nahi karegi."</strong> We bridge the gap between complex tech and regional talent.</p>
+    </div>
+  </div>
+ 
+  <div class="divider">technical architecture</div>
+ 
+ 
+  <div class="section">
+    <div class="section-head">
+      <span class="section-num">05</span>
+      <span class="section-title">Architecture & Guardrails</span>
+      <span class="duration blue">45s in pitch · full Q&A below</span>
+    </div>
+    <div class="stage">⚙️ Hit the stack hard and fast. Prove this isn't just a basic OpenAI wrapper.</div>
+ 
+    <div class="tech-block">
+      <span class="tech-label">SAY THIS IN THE MAIN PITCH</span>
+      <p>The stack is built for scale and resilience.</p>
+      <p>Frontend is React + Tailwind + React Force Graph for the CLI visualizer. Backend is an asynchronous FastAPI layer deployed on AWS EC2.</p>
+      <p>For the AI layer, we use <em>Amazon Titan Embeddings v2</em> for cost-optimized vectorization, and <em>Nemotron-3 via OpenRouter</em> for reasoning. We store the vectors locally in ChromaDB.</p>
+      <p>To prevent memory crashes from massive autogenerated files like `package-lock.json`, we built a <strong>Fat Repo Shield</strong> middleware that hard-caps parsing at 1MB per file, and we use async semaphores to handle rate limits gracefully during ingestion.</p>
+    </div>
+ 
+    <div class="tech-block">
+      <span class="tech-label">JUDGE ASKS: "Can someone inject malicious code through a GitHub issue to hijack your AI?"</span>
+      <div class="qa-item">
+        <div class="qa-q">Q: What stops a prompt injection attack through repository content?</div>
+        <div class="qa-a">That attack is real — someone plants "ignore previous instructions" inside a public issue, and when our AI reads it, it executes the command. We neutralize this with <em>XML sandboxing.</em> All untrusted content — code, issues, PR comments — is wrapped in strict XML tags before the AI ever sees it. The AI is explicitly instructed to treat everything inside those tags as <em>inert string data</em> that cannot be executed under any circumstance.</div>
+      </div>
+    </div>
+ 
+    <div class="tech-block">
+      <span class="tech-label">JUDGE ASKS: "Why not just use GitHub Copilot?"</span>
+      <div class="qa-item">
+        <div class="qa-q">Q: What makes this different from GitHub Copilot or Cursor?</div>
+        <div class="qa-a">Copilot and Cursor are <em>tactical</em> execution tools. They help you write code once you are already inside the correct file. DevLens is a <em>strategic</em> navigation tool. Copilot writes the `for` loop; DevLens tells you which file out of 3,000 actually needs the `for` loop, and what architecture patterns you must follow. They are highly complementary.</div>
+      </div>
+    </div>
+ 
+    <div class="tech-block">
+      <span class="tech-label">JUDGE ASKS: "How do you avoid LLM Hallucinations?"</span>
+      <div class="qa-item">
+        <div class="qa-q">Q: AI makes up fake code and fake dependencies. How do you stop that?</div>
+        <div class="qa-a">By strictly isolating responsibilities. The Dependency Map is <strong>never</strong> generated by the LLM. It is generated by a deterministic `Tree-sitter` parser that builds an exact Abstract Syntax Tree. The structural data is 100% ground truth. The LLM is strictly confined to semantic search and translating dense text into simple analogies. We do not let the AI guess the architecture.</div>
+      </div>
+    </div>
+  </div>
+ 
+ 
+  <div class="section">
+    <div class="section-head">
+      <span class="section-num">06</span>
+      <span class="section-title">The Close</span>
+      <span class="duration">30 seconds</span>
+    </div>
+    <div class="stage">🎯 Slow down. Bring it back from the technical details to the massive human impact.</div>
+    <div class="spoken">
+      <div class="beat-label">Landing</div>
+      <p>India is on track to have the largest population of developers in the world. The talent is here. But right now, brilliant engineers are wasting weeks fighting undocumented architectures instead of shipping code.</p>
+      <p>DevLens kills onboarding latency. It turns a massive, intimidating repository into a structured, navigable map. It gives every junior engineer the intuition of a senior architect on day one.</p>
+      <p>It's live right now at <strong>44.202.1.36</strong>.</p>
+    </div>
+    <div class="closing">
+      <h2>End on this line. Say it slowly.</h2>
+      <p>Look directly at the judges.</p>
+      <p class="final-line">"Developers shouldn't spend two weeks wondering where to start.<br>With DevLens, they don't have to."</p>
+      <p class="after">Then: "Thank you. This is Team DABBA Slayers. We'd love your technical questions."</p>
+    </div>
+  </div>
+ 
+</div>
+</body>
+</html>
