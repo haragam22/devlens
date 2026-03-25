@@ -296,7 +296,7 @@ async def generate_plan(
 
 # ── Git Commander ──────────────────────────────────────────────────────────
 
-def generate_git_commands(
+async def generate_git_commands(
     owner: str,
     repo: str,
     issue_number: int | None,
@@ -321,7 +321,7 @@ def generate_git_commands(
     if clone_path:
         from app.services.setup_generator import generate_setup_script
         try:
-            scripts = generate_setup_script(clone_path)
+            scripts = await generate_setup_script(clone_path)
             # Use bash by default
             setup = scripts.get("bash", "")
             # Strip the shebang and echo lines
@@ -505,7 +505,7 @@ async def run_full_investigation(
     plan = await generate_plan(mode, issue_text, sniped, blast_radius, contributing_md, user_profile=user_profile)
 
     # 6. Git Commander
-    git_commands = generate_git_commands(
+    git_commands = await generate_git_commands(
         owner, repo,
         issue_number=issue_number,
         issue_title=issue_text[:80],

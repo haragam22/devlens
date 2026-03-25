@@ -197,13 +197,34 @@ export const initCommands = () => {
                 return;
             }
 
-            writeOutput('🚀 Mission Start: Paste this into your terminal', '#10B981');
-            writeOutput(`git clone https://github.com/${ids.owner}/${ids.repo}.git`);
-            writeOutput(`cd ${ids.repo}`);
+            writeOutput('Generating setup instructions from project files...', '#06B6D4');
 
-            // Basic heuristic for package manager
-            writeOutput('npm install # (Assuming Node.js project. Use pip for Python, cargo for Rust)');
-            writeOutput('npm run dev # Or equivalent start command');
+            try {
+                const data = await apiClient.get(`/setup/${ids.owner}/${ids.repo}`);
+
+                writeOutput('');
+                writeOutput('🚀 Setup Commands for ' + ids.owner + '/' + ids.repo, '#10B981');
+                writeOutput('');
+
+                // Detect OS and show the right script
+                const isWindows = navigator.platform.toLowerCase().includes('win');
+                const script = isWindows ? data.powershell_script : data.bash_script;
+
+                if (script) {
+                    script.split('\n').forEach((line: string) => {
+                        if (line.startsWith('#') || line.startsWith('Write-Host')) {
+                            writeOutput(line, '#94A3B8'); // slate comment color
+                        } else if (line.trim()) {
+                            writeOutput(line);
+                        }
+                    });
+                } else {
+                    writeOutput('No setup script could be generated for this repository.', '#EAB308');
+                }
+            } catch (e: any) {
+                writeOutput(`Setup generation failed: ${e.message}`, '#EF4444');
+                writeOutput('Make sure the repository has been ingested first.', '#EAB308');
+            }
         }
     });
 

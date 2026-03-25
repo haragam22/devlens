@@ -384,7 +384,7 @@ async def get_setup(owner: str, repo: str) -> SetupResponse:
         raise HTTPException(status_code=404, detail=f"Repository '{repo_id}' not ingested. Call /ingest first.")
         
     try:
-        scripts = generate_setup_script(clone_path)
+        scripts = await generate_setup_script(clone_path)
         return SetupResponse(
             repo_id=repo_id,
             bash_script=scripts["bash"],
